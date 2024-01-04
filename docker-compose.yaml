@@ -11,9 +11,28 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+    command:
+      [
+        "postgres",
+        "-c",
+        "ssl=on",
+        "-c",
+        "ssl_cert_file=/var/lib/postgresql/certs/cert.pem",
+        "-c",
+        "ssl_key_file=/var/lib/postgresql/certs/private.pem",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     volumes:
-      - ./init:/docker-entrypoint-initdb.d
-      - ./certs/:/var/lib/postgresql/certs/
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - ./certs/:/var/lib/postgresql/certs/:ro #chmod 400 private.pem on local
     secrets:
       - pg_admin_password
 
