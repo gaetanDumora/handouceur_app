@@ -7,10 +7,8 @@ services:
     restart: on-failure
     ports:
       - 5432:5432
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+    env_file:
+      - .env
     command:
       [
         "postgres",
@@ -40,7 +38,8 @@ services:
     image: dpage/pgadmin4
     container_name: pgadmin4
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: always
     ports:
       - 5555:80
