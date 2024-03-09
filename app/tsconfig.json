@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "ESNext", // Target ECMAScript 2022
+        "module": "esnext", // Output ECMAScript modules
+        "moduleResolution": "node", // Use Node.js module resolution strategy
+        "esModuleInterop": true,
+        "strict": true, // Enable strict type-checking and other strict checks
+        "skipLibCheck": true, // Skip type checking of declaration files
+        "forceConsistentCasingInFileNames": true, // Ensure consistent casing in file names
+        "outDir": "./dist", // Redirect output structure to the "dist" directory
+        "rootDir": "src", // Specify the root directory of input files
+        "resolveJsonModule": true, // Enable importing JSON modules
+        "declaration": true, // Generate corresponding .d.ts files
+        "sourceMap": true, // Generate source maps
+        "inlineSources": true, // Include source code in sourcemaps
+        "baseUrl": ".", // Base directory to resolve non-relative module names
+        "paths": {
+            "*": [
+                "node_modules/*",
+                "app/src/types/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

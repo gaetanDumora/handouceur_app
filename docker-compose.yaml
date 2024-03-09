@@ -1,24 +1,60 @@
 version: "3.9"
 
 services:
+  vault-leader:
+    image: hashicorp/vault:latest
+    restart: always
+    container_name: vault-leader
+    depends_on:
+      vault-follower:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8200:8200"
+    env_file:
+      - .env
+    cap_add:
+      - IPC_LOCK
+    entrypoint: ["/bin/sh", "/vault/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ${PWD}/infra/vault-cluster/certs:/vault/certs
+      - ${PWD}/infra/vault-cluster/vault-leader:/vault
+
+  vault-follower:
+    image: hashicorp/vault:latest
+    restart: always
+    container_name: vault-follower
+    ports:
+      - "8100:8100"
+    env_file:
+      - .env
+    cap_add:
+      - IPC_LOCK
+    entrypoint: ["/bin/sh", "/vault/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ${PWD}/infra/vault-cluster/certs:/vault/certs
+      - ${PWD}/infra/vault-cluster/vault-follower:/vault
+
   postgres:
-    container_name: postgres
     image: postgres:latest
     restart: on-failure
+    container_name: postgres
     ports:
       - 5432:5432
     env_file:
       - .env
-    command:
-      [
-        "postgres",
-        "-c",
-        "ssl=on",
-        "-c",
-        "ssl_cert_file=/var/lib/postgresql/certs/cert.pem",
-        "-c",
-        "ssl_key_file=/var/lib/postgresql/certs/private.pem",
-      ]
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     healthcheck:
       test:
         [
@@ -29,23 +65,24 @@ services:
       timeout: 3s
       retries: 3
     volumes:
-      - ./init:/docker-entrypoint-initdb.d:ro
-      - ./certs/:/var/lib/postgresql/certs/:ro #chmod 400 private.pem on local
+      - ${PWD}//infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ${PWD}//infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ${PWD}//infra/postgres/certs/:/var/lib/postgresql/certs/:ro #need to chmod 400 private.pem on local. https://www.postgresql.org/docs/current/ssl-tcp.html
     secrets:
       - pg_admin_password
 
   pgadmin:
     image: dpage/pgadmin4
+    restart: always
     container_name: pgadmin4
     depends_on:
       postgres:
         condition: service_healthy
-    restart: always
     ports:
       - 5555:80
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pg_admin_password
+      PGADMIN_DEFAULT_PASSWORD_FILE: ${POSTGRES_PASSWORD_FILE}
     secrets:
       - pg_admin_password
 

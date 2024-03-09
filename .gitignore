@@ -1,3 +1,11 @@
+secrets.txt
 secrets/
 certs/
 .env
+dist/
+node_modules
+file/
+log/
+logs/
+data/
+.DS_Store

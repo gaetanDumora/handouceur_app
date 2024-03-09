@@ -33,27 +33,28 @@ CREATE TABLE IF NOT EXISTS public.travels (
     travel_id SERIAL PRIMARY KEY,
     title VARCHAR(20) UNIQUE,
     subtitle VARCHAR(20),
-    travel_location VARCHAR(20),
+    location VARCHAR(20),
     coordinates FLOAT [],
     start_date TIMESTAMP,
     end_date TIMESTAMP,
     price NUMERIC(10, 2),
     autonomy VARCHAR(10),
-    image_url TEXT [],
+    image_urls TEXT [],
     main_text TEXT,
     activity_text TEXT,
     hosting_text TEXT,
     transport_text TEXT,
-    group_size INTEGER,
+    max_booking INTEGER,
     support_staff INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS public.bookings(
-    booking_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
     travel_id INTEGER NOT NULL REFERENCES public.travels(travel_id) ON DELETE CASCADE,
     booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, travel_id)
+    PRIMARY KEY (user_id, travel_id)
 );
+
+CREATE ROLE "vault" WITH SUPERUSER LOGIN ENCRYPTED PASSWORD 'vault';

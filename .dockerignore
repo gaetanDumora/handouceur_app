@@ -1,0 +1,10 @@
+node_modules
+logs
+dist
+README.md
+LICENCE
+.git
+.vscode
+docker-compose.yml
+volumes
+.env
