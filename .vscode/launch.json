@@ -6,8 +6,10 @@
             "type": "node",
             "request": "attach",
             "sourceMaps": true,
-            "cwd": "${workspaceFolder}",
-            "internalConsoleOptions": "neverOpen"
+            "port": 9229,
+            "address": "localhost",
+            "cwd": "${workspaceFolder}/app",
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }

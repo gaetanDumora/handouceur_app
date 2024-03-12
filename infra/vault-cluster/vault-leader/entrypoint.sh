@@ -55,7 +55,7 @@ vault write database/roles/ro \
 
 vault write database/roles/rwd \
         db_name="postgres" \
-        creation_statements="CREATE USER \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE NOREPLICATION VALID UNTIL '{{expiration}}'; GRANT SELECT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
+        creation_statements="CREATE USER \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE NOREPLICATION VALID UNTIL '{{expiration}}'; GRANT INSERT, SELECT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
         revocation_statements="REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\"; DROP OWNED BY \"{{name}}\"; DROP ROLE \"{{name}}\";" \
         default_ttl=1h \
         max_ttl=24h

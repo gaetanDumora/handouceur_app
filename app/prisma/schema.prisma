@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model permissions {
+  permissionId         Int                    @id @default(autoincrement()) @map("permission_id")
+  permissionName       String                 @unique @map("permission_name") @db.VarChar(20)
+  userRolesPermissions userRolesPermissions[]
+}
+
+model roles {
+  roleId               Int                    @id @default(autoincrement()) @map("role_id")
+  roleName             String                 @unique @map("role_name") @db.VarChar(20)
+  userRolesPermissions userRolesPermissions[]
+}
+
+model userRolesPermissions {
+  userId       Int         @map("user_id")
+  roleId       Int         @map("role_id")
+  permissionId Int         @map("permission_id")
+  permissions  permissions @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade, onUpdate: NoAction)
+  roles        roles       @relation(fields: [roleId], references: [roleId], onDelete: Cascade, onUpdate: NoAction)
+  users        users       @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userId, roleId, permissionId])
+  @@map("user_roles_permissions")
+}
+
+model travels {
+  travelId      Int        @id @default(autoincrement()) @map("travel_id")
+  title         String?    @unique @db.VarChar(20)
+  subtitle      String?    @db.VarChar(20)
+  location      String?    @db.VarChar(20)
+  coordinates   Float[]
+  startDate     DateTime?  @map("start_date") @db.Timestamp(6)
+  endDate       DateTime?  @map("end_date") @db.Timestamp(6)
+  price         Decimal?   @db.Decimal(10, 2)
+  autonomy      String?    @db.VarChar(10)
+  imageUrls     String[]   @map("image_urls")
+  mainText      String?    @map("main_text")
+  activityText  String?    @map("activity_text")
+  hostingText   String?    @map("hosting_text")
+  transportText String?    @map("transport_text")
+  maxBooking    Int?       @map("max_booking")
+  supportStaff  Int?       @map("support_staff")
+  createdAt     DateTime?  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime?  @default(now()) @map("updated_at") @db.Timestamp(6)
+  bookings      bookings[]
+}
+
+model users {
+  userId               Int                    @id @default(autoincrement()) @map("user_id")
+  firstName            String?                @map("first_name") @db.VarChar(20)
+  lastName             String?                @map("last_name") @db.VarChar(20)
+  username             String                 @unique @db.VarChar(20)
+  avatarUrl            String?                @map("avatar_url") @db.VarChar(255)
+  emailAddress         String                 @unique @map("email_address") @db.VarChar(50)
+  hashedPassword       String                 @unique @map("hashed_password") @db.VarChar(255)
+  salt                 String                 @db.VarChar(255)
+  address              String?                @db.VarChar(30)
+  createdAt            DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime?              @default(now()) @map("updated_at") @db.Timestamptz(6)
+  bookings             bookings[]
+  userRolesPermissions userRolesPermissions[]
+}
+
+model bookings {
+  userId   Int       @map("user_id")
+  travelId Int       @map("travel_id")
+  bookedAt DateTime? @default(now()) @map("booked_at") @db.Timestamp(6)
+  travels  travels   @relation(fields: [travelId], references: [travelId], onDelete: Cascade, onUpdate: NoAction)
+  users    users     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userId, travelId])
+}

@@ -23,10 +23,9 @@ CREATE TABLE IF NOT EXISTS public.permissions (
 );
 
 CREATE TABLE IF NOT EXISTS public.user_roles_permissions (
-    user_id INTEGER REFERENCES public.users (user_id) ON DELETE CASCADE,
+    user_id INTEGER PRIMARY KEY REFERENCES public.users (user_id) ON DELETE CASCADE,
     role_id INTEGER REFERENCES public.roles (role_id) ON DELETE CASCADE,
-    permission_id INTEGER REFERENCES public.permissions (permission_id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, role_id, permission_id)
+    permission_id INTEGER REFERENCES public.permissions (permission_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS public.travels (
