@@ -1,10 +1,10 @@
 import dotenv from "dotenv";
+import { prismaReadOnly } from "./clients";
+
 dotenv.config();
-import { prismaRO, prismaRWD } from "./clients/prisma/prima-client";
 
 try {
-  const prismaRead = await prismaRO();
-  const prima = await prismaRWD();
+  const prismaRead = await prismaReadOnly();
   const user = await prismaRead.users.findMany();
   console.log(user);
 } catch (error) {

@@ -20,7 +20,7 @@ audit "file" {
 # manage auto unseal leader, backed by the follower
 seal "transit" {
   address         = "https://vault-follower:8200"
-  token           = "hvs.CAESILHjBeCO_Si22tQprbDh06l32RF5coE0tB7e8NGTWKnCGh4KHGh2cy5USE9ueUVudHdWeHhVcndrT3RBQTY0VWQ"
+  token           = "hvs.CAESIL05PbHUIG7Mh8rwmYWzdC8vG9lJKrqBiXi5TQOfzxbSGh4KHGh2cy5jM0pxaEJyUW5WWGw1cTZlY3ZXc1FJc1M"
   disable_renewal = "false"
   key_name        = "autounseal"
   mount_path      = "transit/"

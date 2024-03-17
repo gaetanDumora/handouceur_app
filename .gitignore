@@ -9,3 +9,4 @@ log/
 logs/
 data/
 .DS_Store
+clients_certs/

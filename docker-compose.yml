@@ -2,7 +2,8 @@ version: "3.9"
 
 services:
   vault-leader:
-    image: hashicorp/vault:latest
+    build:
+      context: ./infra/vault-cluster/vault-leader
     restart: always
     container_name: vault-leader
     depends_on:
@@ -13,38 +14,32 @@ services:
     ports:
       - "8200:8200"
     env_file:
-      - .env
+      - ./infra/vault-cluster/.env
     cap_add:
       - IPC_LOCK
-    entrypoint: ["/bin/sh", "/vault/entrypoint.sh"]
-    healthcheck:
-      test: ["CMD", "vault", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     volumes:
       - ${PWD}/infra/vault-cluster/certs:/vault/certs
-      - ${PWD}/infra/vault-cluster/vault-leader:/vault
+      - vault_data2:/vault/data
 
   vault-follower:
-    image: hashicorp/vault:latest
+    build:
+      context: ./infra/vault-cluster/vault-follower
     restart: always
     container_name: vault-follower
     ports:
       - "8100:8100"
     env_file:
-      - .env
+      - ./infra/vault-cluster/.env
     cap_add:
       - IPC_LOCK
-    entrypoint: ["/bin/sh", "/vault/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "vault", "status"]
       interval: 10s
       timeout: 5s
       retries: 3
     volumes:
+      - vault_data1:/vault/data
       - ${PWD}/infra/vault-cluster/certs:/vault/certs
-      - ${PWD}/infra/vault-cluster/vault-follower:/vault
 
   postgres:
     image: postgres:latest
@@ -53,23 +48,17 @@ services:
     ports:
       - 5432:5432
     env_file:
-      - .env
+      - ./infra/postgres/.env
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'",
-        ]
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U admin -d handouceur'"]
       interval: 10s
       timeout: 3s
       retries: 3
     volumes:
-      - ${PWD}//infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-      - ${PWD}//infra/postgres/init:/docker-entrypoint-initdb.d:ro
-      - ${PWD}//infra/postgres/certs/:/var/lib/postgresql/certs/:ro #need to chmod 400 private.pem on local. https://www.postgresql.org/docs/current/ssl-tcp.html
-    secrets:
-      - pg_admin_password
+      - ${PWD}/infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ${PWD}/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ${PWD}/infra/postgres/certs/:/var/lib/postgresql/certs/:ro
 
   pgadmin:
     image: dpage/pgadmin4
@@ -80,12 +69,9 @@ services:
         condition: service_healthy
     ports:
       - 5555:80
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD_FILE: ${POSTGRES_PASSWORD_FILE}
-    secrets:
-      - pg_admin_password
+    env_file:
+      - ./infra/postgres/.env
 
-secrets:
-  pg_admin_password:
-    file: secrets/pg_admin_password.txt
+volumes:
+  vault_data1:
+  vault_data2:

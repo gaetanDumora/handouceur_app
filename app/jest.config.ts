@@ -1,19 +1,16 @@
-import type { Config } from '@jest/types'
-
-const baseDir = '<rootDir>/src/app/';
-const baseTestDir = '<rootDir>/src/test';
+import type { Config } from "@jest/types";
 
 const config: Config.InitialOptions = {
-    preset: 'ts-jest',
-    testEnvironment: 'node',
-    verbose: true,
-    collectCoverage: true,
-    collectCoverageFrom: [
-        `${baseDir}/**/*.ts`
-    ],
-    testMatch:[
-        `${baseTestDir}/**/*test.ts`
-    ]
-}
+  preset: "ts-jest",
+  testEnvironment: "node",
+  roots: ["<rootDir>/src", "<rootDir>/__tests__"],
+  transform: {
+    "^.+\\.tsx?$": "ts-jest",
+  },
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+  },
+  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+};
 
 export default config;
