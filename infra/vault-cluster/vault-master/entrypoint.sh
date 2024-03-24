@@ -1,40 +1,59 @@
 #!/bin/sh
-apk update
-apk add jq
-apk add curl
-# Start Vault server in the background
 vault server -config=/vault/config/config.hcl  &
 
-# Wait for Vault to be ready
-check_vault_ready() {
-    curl -sk -o /dev/null "https://localhost:8200/v1/sys/health"
-}
-# Wait for Vault to be ready
-while ! check_vault_ready; do
-    echo "Vault is not ready yet. Waiting..."
-    sleep 5
-done
+sleep 5
 
-echo "Vault is ready. Initializing..."
+printf "\n%s" \
+"[vault_2] initializing and capturing the recovery key and root token" \
+""
+sleep 2 # Added for human readability
 
-# Run the vault operator init command and capture the output
-init_output=$(vault operator init)
-root_token=$(echo "$init_output" | grep 'Initial Root Token:' | awk '{print $NF}')
+# Initialize the second node and capture its recovery keys and root token
+INIT_RESPONSE=$(vault operator init -format=json -recovery-shares 1 -recovery-threshold 1)
 
-# Login as root to enable all secret engines
-vault login $root_token
+RECOVERY_KEY=$(echo "$INIT_RESPONSE" | jq -r .recovery_keys_b64[0])
+VAULT_TOKEN=$(echo "$INIT_RESPONSE" | jq -r .root_token)
+
+printf "\n%s" \
+"[vault_2] waiting to finish post-unseal setup (5 seconds)" \
+""
+
+sleep 5
+
+printf "\n%s" \
+"[vault_2] logging in and enabling the KV secrets engine" \
+""
+sleep 2 # Added for human readability
+
+printf "\n%s" \
+"[vault_2] login with root token" \
+""
+vault login "$VAULT_TOKEN"
 
 # Enabler
+printf "\n%s" \
+"[vault_2] enable secret engines" \
+""
 vault secrets enable -path=kv kv-v2
+sleep 2
 vault secrets enable -path=database database
+sleep 2
 vault auth enable approle
+sleep 2
 vault audit enable file file_path=/vault/logs/audit.log
 
 # Write policies
+printf "\n%s" \
+"[vault_2] write policies" \
+""
 vault policy write nodejs-app /vault/policies/app-policy.hcl
 vault policy write admin /vault/policies/admin-policy.hcl
+sleep 2
 
 # Setup vault role in postgres
+printf "\n%s" \
+"[vault_2] setup database engine, and configure roles" \
+""
 vault write database/config/postgres \
         plugin_name="postgresql-database-plugin" \
         allowed_roles="*" \
@@ -60,8 +79,9 @@ vault write database/roles/rwd \
         default_ttl=1h \
         max_ttl=24h
 
+sleep 2
 # Generate token for human admin
-admin_token=$(vault token create -format=json -policy="admin" | jq -r ".auth.client_token")
+ADMIN_TOKEN=$(vault token create -format=json -policy="admin" | jq -r ".auth.client_token")
 
 # Create role for my Node.js app
 vault write auth/approle/role/nodejs-app \
@@ -70,15 +90,17 @@ vault write auth/approle/role/nodejs-app \
     token_max_ttl=24h
 
 # Generate secrets for my Node.js app (no ttl)
-app_role_id=$(vault read auth/approle/role/nodejs-app/role-id -format=json | jq -r ".data.role_id")
-app_secret_id=$(vault write -force auth/approle/role/nodejs-app/secret-id -format=json| jq -r ".data.secret_id")
+APP_ROLE_ID=$(vault read auth/approle/role/nodejs-app/role-id -format=json | jq -r ".data.role_id")
+APP_ROLE_SECRET=$(vault write -force auth/approle/role/nodejs-app/secret-id -format=json| jq -r ".data.secret_id")
 # Store them in kv secrets
-vault kv put kv/app role_id=$app_role_id secret_id=$app_secret_id
+vault kv put kv/app role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET
 
-echo "Admin Token: $admin_token" >> /vault/secrets.txt
-echo "App RoleId: $app_role_id" >> /vault/secrets.txt
-echo "App SecretId: $app_secret_id" >> /vault/secrets.txt
-echo "$init_output" >> /vault/secrets.txt
+echo "Admin Token: $ADMIN_TOKEN" >> secrets.txt
+echo "App RoleId: $APP_ROLE_ID" >> secrets.txt
+echo "App SecretId: $APP_ROLE_SECRET" >> secrets.txt
+echo "Rercovery Key: $RECOVERY_KEY" >> secrets.txt
+echo "Vault Token: $VAULT_TOKEN" >> secrets.txt
+cat secrets.txt
 
 # Keep the container running
 tail -f /dev/null
