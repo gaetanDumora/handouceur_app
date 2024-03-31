@@ -72,7 +72,6 @@ services:
       - ${PWD}/infra/vault-cluster/vault-slaves/config-charlie.hcl:/vault/config/config.hcl
       - vault_charlie:/vault/data
 
-  # vault master token must be use to auto unseal slaves
   vault-master:
     build:
       context: ./infra/vault-cluster/vault-master
@@ -96,7 +95,7 @@ services:
       - ${PWD}/infra/vault-cluster/certs:/vault/certs
       - vault_master_raft:/vault/data
 
-  # vault transit autounseal token must be use by vault master
+  # vault transit autounseal token must be use by other vaults
   vault-transit:
     build:
       context: ./infra/vault-cluster/vault-transit
