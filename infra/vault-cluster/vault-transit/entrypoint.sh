@@ -5,7 +5,7 @@ vault server -config=/vault/config/config.hcl &
 sleep 5
 
 printf "\n%s" \
-"[vault_1] initializing and capturing the unseal key and root token" \
+"[vault_transit] initializing and capturing the unseal key and root token" \
 ""
 sleep 2 # Added for human readability
 
@@ -15,7 +15,7 @@ UNSEAL_KEY=$(echo "$INIT_RESPONSE" | jq -r .unseal_keys_b64[0])
 VAULT_TOKEN=$(echo "$INIT_RESPONSE" | jq -r .root_token)
 
 printf "\n%s" \
-"[vault_1] unsealing and logging in" \
+"[vault_transit] unsealing and logging in" \
 ""
 sleep 2 # Added for human readability
 
@@ -23,7 +23,7 @@ vault operator unseal "$UNSEAL_KEY"
 vault login "$VAULT_TOKEN"
 
 printf "\n%s" \
-"[vault_1] enabling the transit secret engine and creating a key to auto-unseal vault cluster" \
+"[vault_transit] enabling the transit secret engine and creating a key to auto-unseal vault cluster" \
 ""
 sleep 5 # Added for human readability
 
@@ -33,7 +33,7 @@ vault audit enable file file_path=/vault/logs/audit.log
 
 # # Write policies to being able to store and read keys sent by vault-leader 
 vault policy write autounseal /vault/policies/auto-unseal-policy.hcl
-# Generate token for vault-leader to access to keys
+# Generate token others vaults to access their keys
 vault write -f transit/keys/autounseal
 AUTO_UNSEAL_TOKEN=$(vault token create -orphan -policy="autounseal" -format=json | jq -r ".auth.client_token")
 

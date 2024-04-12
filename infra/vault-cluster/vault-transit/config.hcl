@@ -1,8 +1,9 @@
 listener "tcp" {
-  address       = "0.0.0.0:8200"
-  tls_cert_file = "/vault/certs/selfsigned.crt"
-  tls_key_file  = "/vault/certs/selfsigned.key"
-  tls_disable   = true
+  address            = "0.0.0.0:8200"
+  tls_cert_file      = "/vault/certs/server-cert.pem"
+  tls_key_file       = "/vault/certs/server-key.pem"
+  tls_client_ca_file = "/vault/certs/ca-cert.pem"
+  tls_disable        = false
 }
 
 audit "file" {
@@ -16,4 +17,4 @@ storage "file" {
 disable_mlock = true
 ui            = true
 log_level     = "debug"
-api_addr      = "http://vault-transit:8200"
+api_addr      = "https://vault-transit:8200"

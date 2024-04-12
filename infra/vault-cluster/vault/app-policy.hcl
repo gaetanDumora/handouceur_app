@@ -3,14 +3,10 @@ path "auth/approle/login" {
   capabilities = ["update"]
 }
 
-path "kv/data/app" {
-  capabilities = ["read"]
+path "kv-v2/data/*" {
+  capabilities = ["read", "create", "update"]
 }
 
-# Allow reading the AppRole role ID
-path "auth/approle/role/nodejs-app/role-id" {
-  capabilities = ["read"]
-}
 
 # Allow generating database credentials for specific roles
 path "database/creds/ro" {

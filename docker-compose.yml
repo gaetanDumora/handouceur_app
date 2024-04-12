@@ -1,82 +1,26 @@
 version: "3.9"
 
 services:
-  load-balancer:
-    image: nginx:latest
+  reverseproxy:
+    build:
+      context: ./infra/nginx
     restart: always
-    container_name: load-balancer
+    container_name: reverseproxy
     ports:
-      - "80:80"
+      - "443:443"
     depends_on:
-      - vault-master
+      - vault
       - vault-alpha
       - vault-bravo
-      - vault-charlie
     volumes:
-      - ${PWD}/infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PWD}/infra/vault-cluster/certs/server-cert.pem:/etc/ssl/certs/server-cert.pem
+      - ${PWD}/infra/vault-cluster/certs/server-key.pem:/etc/ssl/private/server-key.pem
 
-  vault-alpha:
-    image: hashicorp/vault:latest
-    restart: always
-    container_name: vault-alpha
-    env_file:
-      - ./infra/vault-cluster/.env
-    cap_add:
-      - IPC_LOCK
-    healthcheck:
-      test: ["CMD", "vault", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    entrypoint: ["vault", "server", "-config=/vault/config/config.hcl"]
-    volumes:
-      - ${PWD}/infra/vault-cluster/certs:/vault/certs
-      - ${PWD}/infra/vault-cluster/vault-slaves/config-alpha.hcl:/vault/config/config.hcl
-      - vault_alpha:/vault/data
-
-  vault-bravo:
-    image: hashicorp/vault:latest
-    restart: always
-    container_name: vault-bravo
-    env_file:
-      - ./infra/vault-cluster/.env
-    cap_add:
-      - IPC_LOCK
-    healthcheck:
-      test: ["CMD", "vault", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    entrypoint: ["vault", "server", "-config=/vault/config/config.hcl"]
-    volumes:
-      - ${PWD}/infra/vault-cluster/certs:/vault/certs
-      - ${PWD}/infra/vault-cluster/vault-slaves/config-bravo.hcl:/vault/config/config.hcl
-      - vault_bravo:/vault/data
-
-  vault-charlie:
-    image: hashicorp/vault:latest
-    restart: always
-    container_name: vault-charlie
-    env_file:
-      - ./infra/vault-cluster/.env
-    cap_add:
-      - IPC_LOCK
-    healthcheck:
-      test: ["CMD", "vault", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    entrypoint: ["vault", "server", "-config=/vault/config/config.hcl"]
-    volumes:
-      - ${PWD}/infra/vault-cluster/certs:/vault/certs
-      - ${PWD}/infra/vault-cluster/vault-slaves/config-charlie.hcl:/vault/config/config.hcl
-      - vault_charlie:/vault/data
-
-  vault-master:
+  vault:
     build:
-      context: ./infra/vault-cluster/vault-master
+      context: ./infra/vault-cluster/vault
     restart: always
-    container_name: vault-master
+    container_name: vault
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,8 +36,44 @@ services:
       timeout: 5s
       retries: 3
     volumes:
-      - ${PWD}/infra/vault-cluster/certs:/vault/certs
-      - vault_master_raft:/vault/data
+      - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
+      - vault_raft:/vault/data
+
+  vault-alpha:
+    build:
+      context: ./infra/vault-cluster/vault-alpha
+    restart: always
+    container_name: vault-alpha
+    env_file:
+      - ./infra/vault-cluster/.env
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
+      - vault_alpha_raft:/vault/data
+
+  vault-bravo:
+    build:
+      context: ./infra/vault-cluster/vault-bravo
+    restart: always
+    container_name: vault-bravo
+    env_file:
+      - ./infra/vault-cluster/.env
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
+      - vault_bravo_raft:/vault/data
 
   # vault transit autounseal token must be use by other vaults
   vault-transit:
@@ -110,22 +90,20 @@ services:
       - vault_transit_file:/vault/data
 
   postgres:
-    image: postgres:latest
+    build:
+      context: ./infra/postgres
     restart: on-failure
     container_name: postgres
     ports:
       - 5432:5432
     env_file:
       - ./infra/postgres/.env
-    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     healthcheck:
       test: ["CMD-SHELL", "sh -c 'pg_isready -U admin -d handouceur'"]
       interval: 10s
       timeout: 3s
       retries: 3
     volumes:
-      - ${PWD}/infra/postgres/init:/docker-entrypoint-initdb.d:ro
-      - ${PWD}/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ${PWD}/infra/postgres/certs/:/var/lib/postgresql/certs/:ro
 
   pgadmin:
@@ -138,8 +116,7 @@ services:
       - ./infra/postgres/.env
 
 volumes:
-  vault_alpha:
-  vault_bravo:
-  vault_charlie:
-  vault_master_raft:
+  vault_alpha_raft:
+  vault_bravo_raft:
+  vault_raft:
   vault_transit_file:

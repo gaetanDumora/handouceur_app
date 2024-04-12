@@ -4,7 +4,7 @@ vault server -config=/vault/config/config.hcl  &
 sleep 5
 
 printf "\n%s" \
-"[vault_2] initializing and capturing the recovery key and root token" \
+"[vault] initializing and capturing the recovery key and root token" \
 ""
 sleep 2 # Added for human readability
 
@@ -15,26 +15,19 @@ RECOVERY_KEY=$(echo "$INIT_RESPONSE" | jq -r .recovery_keys_b64[0])
 VAULT_TOKEN=$(echo "$INIT_RESPONSE" | jq -r .root_token)
 
 printf "\n%s" \
-"[vault_2] waiting to finish post-unseal setup (5 seconds)" \
+"[vault] waiting to finish post-unseal setup (5 seconds)" \
 ""
 
-sleep 5
-
 printf "\n%s" \
-"[vault_2] logging in and enabling the KV secrets engine" \
-""
-sleep 2 # Added for human readability
-
-printf "\n%s" \
-"[vault_2] login with root token" \
+"[vault] login with root token" \
 ""
 vault login "$VAULT_TOKEN"
 
 # Enabler
 printf "\n%s" \
-"[vault_2] enable secret engines" \
+"[vault] enable secret engines" \
 ""
-vault secrets enable -path=kv kv-v2
+vault secrets enable -path="kv-v2" kv-v2
 sleep 2
 vault secrets enable -path=database database
 sleep 2
@@ -44,15 +37,14 @@ vault audit enable file file_path=/vault/logs/audit.log
 
 # Write policies
 printf "\n%s" \
-"[vault_2] write policies" \
+"[vault] write policies" \
 ""
 vault policy write nodejs-app /vault/policies/app-policy.hcl
-vault policy write admin /vault/policies/admin-policy.hcl
 sleep 2
 
 # Setup vault role in postgres
 printf "\n%s" \
-"[vault_2] setup database engine, and configure roles" \
+"[vault] setup database engine, and configure roles" \
 ""
 vault write database/config/postgres \
         plugin_name="postgresql-database-plugin" \
@@ -80,8 +72,6 @@ vault write database/roles/rwd \
         max_ttl=24h
 
 sleep 2
-# Generate token for human admin
-ADMIN_TOKEN=$(vault token create -format=json -policy="admin" | jq -r ".auth.client_token")
 
 # Create role for my Node.js app
 vault write auth/approle/role/nodejs-app \
@@ -93,9 +83,9 @@ vault write auth/approle/role/nodejs-app \
 APP_ROLE_ID=$(vault read auth/approle/role/nodejs-app/role-id -format=json | jq -r ".data.role_id")
 APP_ROLE_SECRET=$(vault write -force auth/approle/role/nodejs-app/secret-id -format=json| jq -r ".data.secret_id")
 # Store them in kv secrets
-vault kv put kv/app role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET
+vault kv put -mount="kv-v2" "app" role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET
 
-echo "Admin Token: $ADMIN_TOKEN" >> secrets.txt
+
 echo "App RoleId: $APP_ROLE_ID" >> secrets.txt
 echo "App SecretId: $APP_ROLE_SECRET" >> secrets.txt
 echo "Rercovery Key: $RECOVERY_KEY" >> secrets.txt

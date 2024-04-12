@@ -1,11 +1,10 @@
 FROM hashicorp/vault:latest
 
 RUN apk update \
-    && apk add --no-cache jq curl
+    && apk add --no-cache jq
 
 COPY entrypoint.sh /vault
 COPY config.hcl /vault/config/
-COPY admin-policy.hcl /vault/policies/
 COPY app-policy.hcl /vault/policies/
 
 EXPOSE 8200
