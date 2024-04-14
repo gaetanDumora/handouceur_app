@@ -1,26 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { UsersRepo } from 'src/repositories/repositories.users';
 
 @Injectable()
 export class UsersService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(private userRepo: UsersRepo) {}
 
-  private allowedErrors(error: any) {
-    return (
-      error?.code === 'P1000' ||
-      error?.name === 'PrismaClientInitializationError'
-    );
-  }
-
-  async findAll(newInstance?: boolean) {
-    try {
-      const prisma = await this.prismaService.getPrismaInstance(newInstance);
-      return await prisma.users.findMany();
-    } catch (error) {
-      if (!this.allowedErrors(error)) {
-        throw error;
-      }
-      this.findAll(true);
-    }
+  async findAll() {
+    return await this.userRepo.listAll();
   }
 }
