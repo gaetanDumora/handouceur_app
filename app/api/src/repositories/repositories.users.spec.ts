@@ -2,10 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersRepo } from './repositories.users';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { prismaProviders } from '../common/prisma/prisma.providers';
+import { RepositoriesService } from './repositories.service';
 
 describe('UsersRepo', () => {
   let usersRepo: UsersRepo;
-  const sensitiveFields = { hashedPassword: '123', salt: 'QSDd-@éWsx' };
+  const sensitiveFields = { password: '123' };
   const mockUserData = {
     userId: '000',
     firstName: 'foo',
@@ -19,6 +20,7 @@ describe('UsersRepo', () => {
       providers: [
         ...prismaProviders,
         UsersRepo,
+        RepositoriesService,
         {
           provide: PrismaService,
           useValue: {

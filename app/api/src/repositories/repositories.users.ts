@@ -1,55 +1,70 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, users } from '@prisma/client';
-import { PrismaService } from '../common/prisma/prisma.service';
-import { Repository } from './repositories.base';
+import { users } from '@prisma/client';
 import {
   Options,
+  PublicUsersData,
   UserProtectedFields,
   protectedFields,
 } from './repositories.interface';
+import { RepositoriesService } from './repositories.service';
+import { CreateUserInput } from '../users/users.interface';
 
 @Injectable()
-export class UsersRepo extends Repository {
-  constructor(
-    protected prismaService: PrismaService,
-    protected prismaInstance: PrismaClient,
-  ) {
-    super(prismaService, prismaInstance);
-  }
+export class UsersRepo {
+  constructor(protected readonly repo: RepositoriesService) {}
 
-  async listAll(
-    options?: Options,
-  ): Promise<Omit<users, UserProtectedFields>[]> {
+  async listAll(options?: Options): Promise<PublicUsersData[] | undefined> {
     const queryOptions = options?.queryOptions ?? {
       orderBy: {
-        [this.DEFAULT_ORDERING_KEY]: this.DEFAULT_ORDERING,
+        [this.repo.DEFAULT_ORDERING_KEY]: this.repo.DEFAULT_ORDERING,
       },
     };
 
-    const query = this.prismaInstance.users.findMany(queryOptions);
+    const query = this.repo.prisma.users.findMany(queryOptions);
     // Try to execute query with the actual PrismaClient, if the query fails, instantiate a new PrismaClient
-    const response = await this.tryQuery<users[]>(query);
-    if (!response?.length) {
+    const { retry, data } = await this.repo.runQuery(query);
+    if (retry) {
       return this.listAll(options);
     }
-    return response.map((user) =>
-      this.exclude<users, UserProtectedFields>(user, protectedFields),
-    );
+
+    if (data?.length) {
+      return data.map((user) =>
+        this.repo.exclude<users, UserProtectedFields>(user, protectedFields),
+      );
+    }
+  }
+
+  async findOne(
+    identifier: string,
+    exclude = true,
+  ): Promise<null | users | PublicUsersData> {
+    const query = this.repo.prisma.users.findFirst({
+      where: {
+        OR: [
+          { emailAddress: { equals: identifier } },
+          { username: { equals: identifier } },
+        ],
+      },
+    });
+    const { retry, data } = await this.repo.runQuery<users | null>(query);
+    if (retry) {
+      return this.findOne(identifier);
+    }
+
+    if (!exclude && data) {
+      return data;
+    }
+    if (!data) {
+      return null;
+    }
+    return this.repo.exclude<users, UserProtectedFields>(data, protectedFields);
+  }
+
+  async create(createUser: CreateUserInput) {
+    const user = await this.repo.prisma.users.create({
+      data: { ...createUser },
+    });
+
+    return user.userId;
   }
 }
-// try {
-//   const list = await prisma.users.findMany(queryOptions);
-//   return list.map((user) =>
-//     this.exclude<users, 'hashedPassword' | 'salt'>(user, [
-//       'hashedPassword',
-//       'salt',
-//     ]),
-//   );
-// } catch (error) {
-//   if (this.isPrismaError(error) && this.MAX_RETRY_CONNECTION > 0) {
-//     this.MAX_RETRY_CONNECTION--;
-//     return this.listAll({ newInstance: true });
-//   } else {
-//     throw error;
-//   }
-// }

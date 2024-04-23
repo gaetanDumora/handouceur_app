@@ -6,6 +6,6 @@ import { prismaProviders } from './prisma/prisma.providers';
 @Global()
 @Module({
   providers: [VaultService, PrismaService, ...prismaProviders],
-  exports: [PrismaService],
+  exports: [VaultService, PrismaService, ...prismaProviders],
 })
 export class CommonModule {}
