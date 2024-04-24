@@ -60,11 +60,16 @@ export class UsersRepo {
     return this.repo.exclude<users, UserProtectedFields>(data, protectedFields);
   }
 
-  async create(createUser: CreateUserInput) {
-    const user = await this.repo.prisma.users.create({
-      data: { ...createUser },
+  async create(createUser: CreateUserInput): Promise<number | null> {
+    const query = this.repo.prisma.users.create({
+      data: createUser,
     });
 
-    return user.userId;
+    const { retry, data } = await this.repo.runQuery<users | null>(query);
+    if (retry) {
+      return this.create(createUser);
+    }
+
+    return data?.userId || null;
   }
 }

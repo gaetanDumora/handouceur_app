@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
-import {
-  PrismaClientInitializationError,
-  PrismaClientKnownRequestError,
-  PrismaClientUnknownRequestError,
-} from '@prisma/client/runtime/library';
 import { PrismaService } from '../common/prisma/prisma.service';
+import {
+  PrismaClientErrorCodes,
+  prismaClientErrorCodes,
+  PrismaClientErrors,
+} from '../common/prisma/primsa.interface';
 
 @Injectable()
 export class RepositoriesService {
@@ -24,12 +24,12 @@ export class RepositoriesService {
     return Object.fromEntries(filteredEntries) as Omit<T, Key>;
   }
 
-  private isPrismaError(error: Error) {
-    return (
-      error instanceof PrismaClientKnownRequestError ||
-      error instanceof PrismaClientInitializationError ||
-      error instanceof PrismaClientUnknownRequestError
-    );
+  private prismaErrors(error: any) {
+    const matchErr: PrismaClientErrors =
+      error?.code &&
+      prismaClientErrorCodes[error.code as PrismaClientErrorCodes];
+
+    return matchErr;
   }
 
   public async runQuery<T>(query: Prisma.PrismaPromise<T>) {
@@ -38,14 +38,14 @@ export class RepositoriesService {
       // Everything is ok, return the result of the query
       return { data, retry: false };
     } catch (error) {
-      if (this.isPrismaError(error) && this.RETRY > 0) {
+      if (!this.prismaErrors(error)?.panic && this.RETRY > 0) {
         // Something goes wrong this the database connection, we should retry
         this.RETRY--;
         // Let refresh the database credentials and instantiate a new PrismaClient
         this.prisma = await this.prismaService.getPrismaInstance(true);
         return { data: null, retry: true };
       } else {
-        throw error;
+        throw this.prismaErrors(error) ?? error;
       }
     }
   }

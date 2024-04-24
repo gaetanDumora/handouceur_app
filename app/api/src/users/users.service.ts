@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UsersRepo } from '../repositories/repositories.users';
-import {
-  prismaClientErrorCodes,
-  PrismaClientErrorCodes,
-} from '../common/prisma/primsa.interface';
+
 import { users } from '@prisma/client';
 import { PublicUsersData } from '../repositories/repositories.interface';
 import { CreateUserInput } from './users.interface';
@@ -31,16 +28,6 @@ export class UsersService {
   }
 
   async insertOne(user: CreateUserInput) {
-    try {
-      return await this.userRepo.create(user);
-    } catch (error) {
-      const prismaError =
-        prismaClientErrorCodes[error?.code as PrismaClientErrorCodes];
-      if (!prismaError) {
-        throw error;
-      }
-
-      return prismaError;
-    }
+    return await this.userRepo.create(user);
   }
 }

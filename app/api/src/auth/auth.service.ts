@@ -10,7 +10,7 @@ export class AuthService {
     try {
       return await compare(candidatePassword, storedHashPassword);
     } catch (error) {
-      throw new Error('Failed to verify password');
+      throw new Error('Failed to compare password');
     }
   }
   async hashPassword(password: string) {
@@ -26,9 +26,12 @@ export class AuthService {
   async validateSignIn(identifier: string, candidatePassword: string) {
     const user = await this.usersService.findOnePrivate(identifier);
     if (!user) {
-      return false;
+      throw new Error('Failed to sing-in');
     }
 
-    return await this.verifyPassword(candidatePassword, user.password);
+    const match = await this.verifyPassword(candidatePassword, user.password);
+    if (!match) {
+      throw new Error('Failed to sing-in');
+    }
   }
 }

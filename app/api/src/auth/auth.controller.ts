@@ -2,8 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
-  NotFoundException,
+  HttpCode,
+  HttpStatus,
   Post,
+  UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
@@ -17,6 +19,7 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
+  @HttpCode(HttpStatus.OK)
   @Post('sign-in')
   async signIn(@Body(new ValidationPipe()) singInRequestDTO: SingInRequestDTO) {
     const { identifier, candidatePassword } = singInRequestDTO;
@@ -26,9 +29,14 @@ export class AuthController {
         candidatePassword,
       );
     } catch (error) {
-      throw new NotFoundException();
+      throw new UnauthorizedException(this.signIn.name, {
+        cause: new Error(),
+        description: error?.message,
+      });
     }
   }
+
+  @HttpCode(HttpStatus.CREATED)
   @Post('sign-up')
   async signUp(@Body(new ValidationPipe()) singUpRequestDTO: SingUpRequestDTO) {
     const { password, ...user } = singUpRequestDTO;
@@ -39,7 +47,10 @@ export class AuthController {
         ...user,
       });
     } catch (error) {
-      throw new BadRequestException();
+      throw new BadRequestException(this.signIn.name, {
+        cause: new Error(),
+        description: error?.message,
+      });
     }
   }
 }
