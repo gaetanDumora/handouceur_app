@@ -1,7 +1,7 @@
 export const prismaClientErrorCodes = {
   P2002: {
     type: 'UNIQ_CONSTRAINT',
-    panic: true,
+    continue: true,
     message: 'username already exists',
   },
 } as const;
@@ -9,6 +9,6 @@ export const prismaClientErrorCodes = {
 export type PrismaClientErrorCodes = keyof typeof prismaClientErrorCodes;
 export type PrismaClientErrors = {
   type: string;
-  panic: boolean;
+  continue: boolean;
   message: string;
 };

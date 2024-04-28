@@ -1,12 +1,5 @@
 import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
 
-export class SingInRequestDTO {
-  @IsString()
-  identifier: string;
-  @IsString()
-  candidatePassword: string;
-}
-
 export class SingUpRequestDTO {
   @IsString()
   username: string;

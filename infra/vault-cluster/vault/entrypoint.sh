@@ -83,8 +83,9 @@ vault write auth/approle/role/nodejs-app \
 # Generate secrets for my Node.js app (no ttl)
 APP_ROLE_ID=$(vault read auth/approle/role/nodejs-app/role-id -format=json | jq -r ".data.role_id")
 APP_ROLE_SECRET=$(vault write -force auth/approle/role/nodejs-app/secret-id -format=json | jq -r ".data.secret_id")
+JWT_SECRET=$(openssl rand -base64 32)
 # Store them in kv secrets
-vault kv put -mount="kv-v2" "app" role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET
+vault kv put -mount="kv-v2" "app" role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET jwt_secret=$JWT_SECRET
 
 echo "App RoleId: $APP_ROLE_ID" >>secrets.txt
 echo "App SecretId: $APP_ROLE_SECRET" >>secrets.txt

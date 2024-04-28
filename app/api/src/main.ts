@@ -20,9 +20,6 @@ async function bootstrap() {
   const config = app.get(ConfigService<EnvironmentVariables>);
   const port = config.get('PORT');
 
-  // Starts listening for shutdown hooks
-  app.enableShutdownHooks();
-
   await app.listen(port);
 }
 bootstrap();

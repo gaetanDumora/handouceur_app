@@ -1,43 +1,62 @@
 import { Injectable } from '@nestjs/common';
-import { users } from '@prisma/client';
-import {
-  Options,
-  PublicUsersData,
-  UserProtectedFields,
-  protectedFields,
-} from './repositories.interface';
 import { RepositoriesService } from './repositories.service';
-import { CreateUserInput } from '../users/users.interface';
+import {
+  createUserInput,
+  User,
+  USER_PERMISSIONS,
+  USER_ROLES,
+} from '../users/users.interface';
+
+const DEFAULT_ROLE_ID = { [USER_ROLES.USER]: 3 };
+const DEFAULT_PERMISSION_ID = { [USER_PERMISSIONS.RWD]: 1 };
+type Options = {
+  queryOptions?: {
+    orderBy: Record<string, unknown>;
+  };
+};
 
 @Injectable()
 export class UsersRepo {
+  private readonly DEFAULT_JOIN = {
+    include: {
+      userRolesPermissions: {
+        select: {
+          roles: { select: { roleName: true } },
+          permissions: { select: { permissionName: true } },
+        },
+      },
+    },
+  };
   constructor(protected readonly repo: RepositoriesService) {}
 
-  async listAll(options?: Options): Promise<PublicUsersData[] | undefined> {
+  async listAll(options?: Options): Promise<User[] | null> {
     const queryOptions = options?.queryOptions ?? {
       orderBy: {
         [this.repo.DEFAULT_ORDERING_KEY]: this.repo.DEFAULT_ORDERING,
       },
     };
 
-    const query = this.repo.prisma.users.findMany(queryOptions);
-    // Try to execute query with the actual PrismaClient, if the query fails, instantiate a new PrismaClient
+    const query = this.repo.prisma.users.findMany({
+      ...queryOptions,
+      ...this.DEFAULT_JOIN,
+    });
     const { retry, data } = await this.repo.runQuery(query);
     if (retry) {
-      return this.listAll(options);
+      this.listAll(options);
     }
 
-    if (data?.length) {
-      return data.map((user) =>
-        this.repo.exclude<users, UserProtectedFields>(user, protectedFields),
-      );
+    if (!data?.length) {
+      return null;
     }
+    //@ts-expect-error roleName and permissionName types are missing in Prisma schema
+    return data.map((user) =>
+      this.repo.exclude<(typeof data)[number], 'password'>(user, ['password']),
+    );
   }
 
   async findOne(
     identifier: string,
-    exclude = true,
-  ): Promise<null | users | PublicUsersData> {
+  ): Promise<(User & { password: string }) | null> {
     const query = this.repo.prisma.users.findFirst({
       where: {
         OR: [
@@ -45,31 +64,38 @@ export class UsersRepo {
           { username: { equals: identifier } },
         ],
       },
+      ...this.DEFAULT_JOIN,
     });
-    const { retry, data } = await this.repo.runQuery<users | null>(query);
+
+    const { retry, data } = await this.repo.runQuery(query);
     if (retry) {
       return this.findOne(identifier);
     }
-
-    if (!exclude && data) {
-      return data;
-    }
-    if (!data) {
-      return null;
-    }
-    return this.repo.exclude<users, UserProtectedFields>(data, protectedFields);
+    //@ts-expect-error roleName and permissionName types are missing in Prisma schema
+    return data;
   }
 
-  async create(createUser: CreateUserInput): Promise<number | null> {
+  async create(createUser: createUserInput): Promise<User | null> {
     const query = this.repo.prisma.users.create({
-      data: createUser,
+      data: {
+        ...createUser,
+        userRolesPermissions: {
+          create: {
+            roleId: DEFAULT_ROLE_ID[USER_ROLES.USER],
+            permissionId: DEFAULT_PERMISSION_ID[USER_PERMISSIONS.RWD],
+          },
+        },
+      },
+      ...this.DEFAULT_JOIN,
     });
 
-    const { retry, data } = await this.repo.runQuery<users | null>(query);
+    const { retry, data } = await this.repo.runQuery(query);
     if (retry) {
       return this.create(createUser);
     }
 
-    return data?.userId || null;
+    delete (data as any).password;
+    //@ts-expect-error roleName and permissionName types are missing in Prisma schema
+    return data;
   }
 }

@@ -1,11 +1,12 @@
 import * as NodeVault from 'node-vault';
 import { ConfigService } from '@nestjs/config';
 import { Config, VaultConfig } from 'src/configs/config.interface';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import {
   DatabaseRoles,
   DatabaseSecret,
   DB_ROLES,
+  KvKeys,
   KvSecret,
 } from './vault.interface';
 
@@ -40,7 +41,7 @@ export class VaultService {
       }
       return secret;
     } catch (error) {
-      if (error.response.statusCode === 403) {
+      if (error.response.statusCode === HttpStatus.FORBIDDEN) {
         await this.login();
         return this.readSecret(path);
       } else {
@@ -58,7 +59,8 @@ export class VaultService {
     return credentials.data;
   }
 
-  async getKvSecret(key?: string) {
+  async getKvSecret(key?: KvKeys) {
+    console.log('[vault] getting kv-v2 secret');
     const secrets = await this.readSecret<KvSecret>(this.vaultConfig.pathKv);
 
     if (!secrets?.data?.data) {

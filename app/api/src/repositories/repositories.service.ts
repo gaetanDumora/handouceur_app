@@ -12,7 +12,7 @@ export class RepositoriesService {
   // protected prisma: PrismaClient;
   public readonly DEFAULT_ORDERING: 'desc';
   public readonly DEFAULT_ORDERING_KEY: 'createdAt';
-  private RETRY = 5;
+  private RETRY = 2;
   constructor(
     protected prismaService: PrismaService,
     @Inject('PRISMA_INSTANCE') public prisma: PrismaClient,
@@ -38,7 +38,7 @@ export class RepositoriesService {
       // Everything is ok, return the result of the query
       return { data, retry: false };
     } catch (error) {
-      if (!this.prismaErrors(error)?.panic && this.RETRY > 0) {
+      if (this.prismaErrors(error)?.continue && this.RETRY > 0) {
         // Something goes wrong this the database connection, we should retry
         this.RETRY--;
         // Let refresh the database credentials and instantiate a new PrismaClient

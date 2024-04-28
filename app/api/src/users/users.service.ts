@@ -1,9 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepo } from '../repositories/repositories.users';
-
-import { users } from '@prisma/client';
-import { PublicUsersData } from '../repositories/repositories.interface';
-import { CreateUserInput } from './users.interface';
+import { createUserInput, User } from './users.interface';
 
 @Injectable()
 export class UsersService {
@@ -13,21 +10,24 @@ export class UsersService {
     return await this.userRepo.listAll();
   }
 
-  async findOnePublic(identifier: string) {
-    const user: PublicUsersData | null =
-      await this.userRepo.findOne(identifier);
-    return user;
+  async findOne(identifier: string) {
+    return await this.userRepo.findOne(identifier);
   }
 
-  async findOnePrivate(identifier: string) {
-    const user = (await this.userRepo.findOne(
-      identifier,
-      false,
-    )) as users | null;
-    return user;
-  }
-
-  async insertOne(user: CreateUserInput) {
+  async insertOne(user: createUserInput) {
     return await this.userRepo.create(user);
+  }
+
+  async getProfile(identifier: string) {
+    const user = await this.findOne(identifier);
+    if (!user) {
+      throw new NotFoundException();
+    }
+
+    delete user.userId;
+    delete (user as Partial<typeof user>).userRolesPermissions;
+    delete (user as Partial<typeof user>).password;
+
+    return user as Omit<User, 'userId' | 'password' | 'userRolesPermissions'>;
   }
 }

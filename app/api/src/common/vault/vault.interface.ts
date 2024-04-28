@@ -62,3 +62,11 @@ export type TokenLookup = {
   ttl: number;
   type: string;
 };
+
+export const VAULT_KV_KEYS = {
+  JWT_SECRET: 'jwt_secret',
+  ROLE_ID: 'role_id',
+  SECRET_ID: 'secret_id',
+} as const;
+
+export type KvKeys = (typeof VAULT_KV_KEYS)[keyof typeof VAULT_KV_KEYS];

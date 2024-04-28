@@ -1,7 +1,7 @@
 FROM hashicorp/vault:latest
 
 RUN apk update \
-    && apk add --no-cache jq
+    && apk add --no-cache jq openssl
 
 COPY entrypoint.sh /vault
 COPY config.hcl /vault/config/

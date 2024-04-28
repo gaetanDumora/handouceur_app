@@ -1,56 +1,35 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpCode,
   HttpStatus,
   Post,
-  UnauthorizedException,
+  UseGuards,
   ValidationPipe,
+  Request,
 } from '@nestjs/common';
-import { UsersService } from 'src/users/users.service';
-import { SingInRequestDTO, SingUpRequestDTO } from './auth.dto';
+import { SingUpRequestDTO } from './auth.dto';
 import { AuthService } from './auth.service';
+import { LocalAuthGuard } from './guards/local.guard';
+import { Request as Req } from 'express';
+import { Public } from './guards/public.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private usersService: UsersService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
+  @Public()
+  @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('sign-in')
-  async signIn(@Body(new ValidationPipe()) singInRequestDTO: SingInRequestDTO) {
-    const { identifier, candidatePassword } = singInRequestDTO;
-    try {
-      return await this.authService.validateSignIn(
-        identifier,
-        candidatePassword,
-      );
-    } catch (error) {
-      throw new UnauthorizedException(this.signIn.name, {
-        cause: new Error(),
-        description: error?.message,
-      });
-    }
+  async signIn(@Request() req: Req) {
+    return this.authService.login(req?.user);
   }
 
+  @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('sign-up')
   async signUp(@Body(new ValidationPipe()) singUpRequestDTO: SingUpRequestDTO) {
-    const { password, ...user } = singUpRequestDTO;
-    try {
-      const hashedPassword = await this.authService.hashPassword(password);
-      return await this.usersService.insertOne({
-        password: hashedPassword,
-        ...user,
-      });
-    } catch (error) {
-      throw new BadRequestException(this.signIn.name, {
-        cause: new Error(),
-        description: error?.message,
-      });
-    }
+    return this.authService.registerUser(singUpRequestDTO);
   }
 }
