@@ -5,7 +5,7 @@ import {
   User,
   USER_PERMISSIONS,
   USER_ROLES,
-} from '../users/users.interface';
+} from '../../users/users.interface';
 
 const DEFAULT_ROLE_ID = { [USER_ROLES.USER]: 3 };
 const DEFAULT_PERMISSION_ID = { [USER_PERMISSIONS.RWD]: 1 };
@@ -27,20 +27,21 @@ export class UsersRepo {
       },
     },
   };
-  constructor(protected readonly repo: RepositoriesService) {}
+  constructor(protected readonly repoService: RepositoriesService) {}
 
   async listAll(options?: Options): Promise<User[] | null> {
     const queryOptions = options?.queryOptions ?? {
       orderBy: {
-        [this.repo.DEFAULT_ORDERING_KEY]: this.repo.DEFAULT_ORDERING,
+        [this.repoService.DEFAULT_ORDERING_KEY]:
+          this.repoService.DEFAULT_ORDERING,
       },
     };
 
-    const query = this.repo.prisma.users.findMany({
+    const query = this.repoService.prisma.users.findMany({
       ...queryOptions,
       ...this.DEFAULT_JOIN,
     });
-    const { retry, data } = await this.repo.runQuery(query);
+    const { retry, data } = await this.repoService.runQuery(query);
     if (retry) {
       this.listAll(options);
     }
@@ -50,14 +51,16 @@ export class UsersRepo {
     }
     //@ts-expect-error roleName and permissionName types are missing in Prisma schema
     return data.map((user) =>
-      this.repo.exclude<(typeof data)[number], 'password'>(user, ['password']),
+      this.repoService.exclude<(typeof data)[number], 'password'>(user, [
+        'password',
+      ]),
     );
   }
 
   async findOne(
     identifier: string,
   ): Promise<(User & { password: string }) | null> {
-    const query = this.repo.prisma.users.findFirst({
+    const query = this.repoService.prisma.users.findFirst({
       where: {
         OR: [
           { emailAddress: { equals: identifier } },
@@ -67,7 +70,7 @@ export class UsersRepo {
       ...this.DEFAULT_JOIN,
     });
 
-    const { retry, data } = await this.repo.runQuery(query);
+    const { retry, data } = await this.repoService.runQuery(query);
     if (retry) {
       return this.findOne(identifier);
     }
@@ -76,7 +79,7 @@ export class UsersRepo {
   }
 
   async create(createUser: createUserInput): Promise<User | null> {
-    const query = this.repo.prisma.users.create({
+    const query = this.repoService.prisma.users.create({
       data: {
         ...createUser,
         userRolesPermissions: {
@@ -89,7 +92,7 @@ export class UsersRepo {
       ...this.DEFAULT_JOIN,
     });
 
-    const { retry, data } = await this.repo.runQuery(query);
+    const { retry, data } = await this.repoService.runQuery(query);
     if (retry) {
       return this.create(createUser);
     }

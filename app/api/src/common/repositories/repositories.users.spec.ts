@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersRepo } from './repositories.users';
-import { PrismaService } from '../common/prisma/prisma.service';
-import { prismaProviders } from '../common/prisma/prisma.providers';
+import { PrismaService } from '../prisma/prisma.service';
 import { RepositoriesService } from './repositories.service';
+import { PrismaClient } from '@prisma/client';
 
 describe('UsersRepo', () => {
   let usersRepo: UsersRepo;
@@ -16,25 +16,30 @@ describe('UsersRepo', () => {
   };
 
   beforeEach(async () => {
+    const mockFindMany = {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          ...mockUserData,
+          ...sensitiveFields,
+        },
+      ]),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ...prismaProviders,
         UsersRepo,
         RepositoriesService,
         {
           provide: PrismaService,
           useValue: {
             getPrismaInstance: jest.fn().mockResolvedValue({
-              // Mock the connection result
-              users: {
-                findMany: jest.fn().mockResolvedValue([
-                  {
-                    ...mockUserData,
-                    ...sensitiveFields,
-                  },
-                ]),
-              },
+              users: mockFindMany,
             }),
+          },
+        },
+        {
+          provide: PrismaClient,
+          useValue: {
+            users: mockFindMany,
           },
         },
       ],

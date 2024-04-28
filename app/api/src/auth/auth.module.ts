@@ -5,8 +5,6 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
-import { UsersRepo } from '../repositories/repositories.users';
-import { RepositoriesService } from '../repositories/repositories.service';
 import { VaultService } from 'src/common/vault/vault.service';
 import { VAULT_KV_KEYS } from 'src/common/vault/vault.interface';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -23,13 +21,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    UsersService,
-    UsersRepo,
-    RepositoriesService,
-    LocalStrategy,
-    JwtStrategy,
-  ],
+  providers: [AuthService, UsersService, LocalStrategy, JwtStrategy],
 })
 export class AuthModule {}

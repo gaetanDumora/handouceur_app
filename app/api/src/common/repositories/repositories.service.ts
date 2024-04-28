@@ -1,21 +1,22 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
-import { PrismaService } from '../common/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   PrismaClientErrorCodes,
   prismaClientErrorCodes,
   PrismaClientErrors,
-} from '../common/prisma/primsa.interface';
+} from '../prisma/prisma.interface';
+import { PrismaClientInitializationError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class RepositoriesService {
-  // protected prisma: PrismaClient;
   public readonly DEFAULT_ORDERING: 'desc';
   public readonly DEFAULT_ORDERING_KEY: 'createdAt';
   private RETRY = 2;
+
   constructor(
     protected prismaService: PrismaService,
-    @Inject('PRISMA_INSTANCE') public prisma: PrismaClient,
+    public prisma: PrismaClient,
   ) {}
   public exclude<T, Key extends keyof T>(obj: T, keys: Key[]) {
     const filteredEntries = Object.entries(
@@ -38,14 +39,14 @@ export class RepositoriesService {
       // Everything is ok, return the result of the query
       return { data, retry: false };
     } catch (error) {
-      if (this.prismaErrors(error)?.continue && this.RETRY > 0) {
+      if (error instanceof PrismaClientInitializationError && this.RETRY > 0) {
         // Something goes wrong this the database connection, we should retry
         this.RETRY--;
         // Let refresh the database credentials and instantiate a new PrismaClient
         this.prisma = await this.prismaService.getPrismaInstance(true);
         return { data: null, retry: true };
       } else {
-        throw this.prismaErrors(error) ?? error;
+        throw error;
       }
     }
   }
