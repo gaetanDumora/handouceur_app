@@ -8,11 +8,11 @@ import {
   ValidationPipe,
   Request,
 } from '@nestjs/common';
-import { SingUpRequestDTO } from './auth.dto';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local.guard';
 import { Request as Req } from 'express';
 import { Public } from './guards/public.decorator';
+import { UserBaseDTO } from 'src/users/users.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -29,7 +29,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('sign-up')
-  async signUp(@Body(new ValidationPipe()) singUpRequestDTO: SingUpRequestDTO) {
+  async signUp(@Body(new ValidationPipe()) singUpRequestDTO: UserBaseDTO) {
     return this.authService.registerUser(singUpRequestDTO);
   }
 }

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersRepo } from './repositories.users';
 import { PrismaService } from '../prisma/prisma.service';
-import { RepositoriesService } from './repositories.service';
 import { PrismaClient } from '@prisma/client';
 
 describe('UsersRepo', () => {
@@ -27,7 +26,6 @@ describe('UsersRepo', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersRepo,
-        RepositoriesService,
         {
           provide: PrismaService,
           useValue: {

@@ -6,10 +6,8 @@ import {
 import { genSalt, hash, compare } from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { User } from 'src/users/users.interface';
-import { SingUpRequestDTO } from './auth.dto';
 import { JWTPayload } from './auth.interface';
-// import { JWTPayload } from './auth.interface';
+import { UserDTO, UserBaseDTO } from 'src/users/users.dto';
 
 @Injectable()
 export class AuthService {
@@ -38,7 +36,7 @@ export class AuthService {
     }
   }
 
-  async registerUser(singUpRequestDTO: SingUpRequestDTO): Promise<User | null> {
+  async registerUser(singUpRequestDTO: UserBaseDTO): Promise<UserDTO | null> {
     const { password, ...user } = singUpRequestDTO;
     try {
       const hashedPassword = await this.hashPassword(password);
@@ -54,9 +52,9 @@ export class AuthService {
   async validateUser(
     identifier: string,
     candidatePassword: string,
-  ): Promise<User | null> {
+  ): Promise<UserDTO | null> {
     const user = await this.usersService.findOne(identifier);
-    if (!user) {
+    if (!user?.password) {
       return null;
     }
 
@@ -66,7 +64,7 @@ export class AuthService {
     }
 
     delete (user as any).password;
-    return user;
+    return user as UserDTO;
   }
 
   async login(payload: JWTPayload | undefined) {

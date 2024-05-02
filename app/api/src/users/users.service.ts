@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepo } from '../common/repositories/repositories.users';
-import { createUserInput, User } from './users.interface';
+import { UserBaseDTO } from './users.dto';
 
 @Injectable()
 export class UsersService {
@@ -14,7 +14,7 @@ export class UsersService {
     return await this.userRepo.findOne(identifier);
   }
 
-  async insertOne(user: createUserInput) {
+  async insertOne(user: UserBaseDTO) {
     return await this.userRepo.create(user);
   }
 
@@ -23,11 +23,6 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException();
     }
-
-    delete user.userId;
-    delete (user as Partial<typeof user>).userRolesPermissions;
-    delete (user as Partial<typeof user>).password;
-
-    return user as Omit<User, 'userId' | 'password' | 'userRolesPermissions'>;
+    return user;
   }
 }
