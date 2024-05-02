@@ -2,8 +2,6 @@ import {
   Controller,
   Get,
   Param,
-  Request as Req,
-  UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -12,8 +10,8 @@ import { SerializeInterceptor } from 'src/common/interceptors/interceptor.serial
 import { Roles } from 'src/auth/guards/roles.decorator';
 import { USER_ROLES } from './users.interface';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Request } from 'express';
 import { UserDTO } from './users.dto';
+import { IsMeGuard } from 'src/auth/guards/isme.guard';
 
 @Controller('users')
 export class UsersController {
@@ -27,12 +25,11 @@ export class UsersController {
     return await this.usersService.findAll();
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(IsMeGuard)
+  @UseInterceptors(new SerializeInterceptor(UserDTO))
   @Get('profile/:id')
-  async findOne(@Param('id') id: string, @Req() req: Request) {
-    if (!req.user?.sub || req.user.sub !== Number(id)) {
-      throw new UnauthorizedException();
-    }
-    return await this.usersService.getProfile(req.user.username);
+  async findOne(@Param('id') id: string) {
+    const userId = parseInt(id, 10);
+    return await this.usersService.findOne(userId);
   }
 }

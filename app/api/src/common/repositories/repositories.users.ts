@@ -42,15 +42,20 @@ export class UsersRepo implements OnModuleInit {
     }
   }
 
-  async findOne(identifier: string): Promise<UserDTO | null> {
+  async findOne(identifier: string | number): Promise<UserDTO | null> {
     try {
+      const where =
+        typeof identifier === 'string'
+          ? {
+              OR: [
+                { emailAddress: { equals: identifier } },
+                { username: { equals: identifier } },
+              ],
+            }
+          : { userId: { equals: identifier } };
+
       const user = await this.repo.findFirst({
-        where: {
-          OR: [
-            { emailAddress: { equals: identifier } },
-            { username: { equals: identifier } },
-          ],
-        },
+        where,
         ...this.DEFAULT_JOIN,
       });
       //@ts-expect-error roleName and permissionName types are missing in Prisma schema
