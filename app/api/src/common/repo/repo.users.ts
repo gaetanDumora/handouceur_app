@@ -42,7 +42,7 @@ export class UsersRepo implements OnModuleInit {
     }
   }
 
-  async findOne(identifier: string | number): Promise<UserDTO | null> {
+  async findOne(identifier: string | number): Promise<UserDTO | undefined> {
     try {
       const where =
         typeof identifier === 'string'
@@ -82,14 +82,6 @@ export class UsersRepo implements OnModuleInit {
       });
     } catch (error) {
       return this.handleError(error, this.create.bind(this), userBase);
-    }
-  }
-
-  async findById(userId: number) {
-    try {
-      return await this.repo.findFirstOrThrow({ where: { userId } });
-    } catch (error) {
-      this.handleError(error, this.findById.bind(this), userId);
     }
   }
 

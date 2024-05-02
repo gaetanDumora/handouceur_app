@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   UseGuards,
   UseInterceptors,
@@ -20,6 +22,7 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles(USER_ROLES.ADMIN, USER_ROLES.OWNER)
   @UseInterceptors(new SerializeInterceptor(UserDTO))
+  @HttpCode(HttpStatus.OK)
   @Get()
   async getAll() {
     return await this.usersService.findAll();
@@ -27,6 +30,7 @@ export class UsersController {
 
   @UseGuards(IsMeGuard)
   @UseInterceptors(new SerializeInterceptor(UserDTO))
+  @HttpCode(HttpStatus.OK)
   @Get('profile/:id')
   async findOne(@Param('id') id: string) {
     const userId = parseInt(id, 10);

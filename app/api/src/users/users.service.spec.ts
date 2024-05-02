@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { UsersRepo } from '../common/repositories/repositories.users';
+import { UsersRepo } from '../common/repo/repo.users';
 import { prismaProviders } from '../common/prisma/prisma.providers';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { VaultService } from '../common/vault/vault.service';
