@@ -3,5 +3,6 @@
         "autounseal",
         "handouceur",
         "healthcheck"
-    ]
+    ],
+    "tailwindCSS.emmetCompletions": true
 }
