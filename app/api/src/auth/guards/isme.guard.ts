@@ -14,7 +14,7 @@ export class IsMeGuard implements CanActivate {
     const paramValue = parseInt(routeParams.id, 10);
 
     const { user }: { user: JWTPayload } = context.switchToHttp().getRequest();
-    if (user.acl.role === USER_ROLES.OWNER) {
+    if (user?.acl?.role === USER_ROLES.OWNER) {
       return true;
     }
 

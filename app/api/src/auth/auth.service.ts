@@ -1,13 +1,15 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { genSalt, hash, compare } from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { JWTPayload } from './auth.interface';
-import { UserDTO, UserBaseDTO } from 'src/users/users.dto';
+import { JWTPayload, AuthResponse } from './auth.interface';
+import { UserBaseDTO } from 'src/users/users.dto';
+import {
+  PRISMA_ERRORS,
+  PrismaCodeErrors,
+  UNIQ_CONSTRAINT,
+  INCORRECT_CREDENTIALS,
+} from 'src/common/prisma/prisma.interface';
 
 @Injectable()
 export class AuthService {
@@ -36,44 +38,65 @@ export class AuthService {
     }
   }
 
-  async registerUser(singUpRequestDTO: UserBaseDTO): Promise<UserDTO | null> {
+  async registerUser(singUpRequestDTO: UserBaseDTO): Promise<AuthResponse> {
     const { password, ...user } = singUpRequestDTO;
     try {
       const hashedPassword = await this.hashPassword(password);
-      return await this.usersService.insertOne({
+      await this.usersService.insertOne({
         password: hashedPassword,
         ...user,
       });
+      return { success: true };
     } catch (error) {
-      throw new UnprocessableEntityException({ error });
+      if (PRISMA_ERRORS[error?.code as PrismaCodeErrors] === UNIQ_CONSTRAINT) {
+        const regExp = /\(\`([^)]+)\`\)/;
+        const matches = regExp.exec(error.message);
+        return {
+          success: false,
+          ...(matches
+            ? { reason: { code: UNIQ_CONSTRAINT, description: matches[1] } }
+            : undefined),
+        };
+      } else {
+        throw new UnprocessableEntityException({ error });
+      }
     }
   }
 
   async validateUser(
     identifier: string,
     candidatePassword: string,
-  ): Promise<UserDTO | null> {
+  ): Promise<AuthResponse> {
     const user = await this.usersService.findOne(identifier);
-    if (!user?.password) {
-      return null;
+
+    if (!user) {
+      return {
+        success: false,
+        reason: { code: INCORRECT_CREDENTIALS, description: 'identifier' },
+      };
     }
 
     const match = await this.verifyPassword(candidatePassword, user.password);
     if (!match) {
-      return null;
+      return {
+        success: false,
+        reason: { code: INCORRECT_CREDENTIALS, description: 'password' },
+      };
     }
 
     delete (user as any).password;
-    return user as UserDTO;
+    return { success: true, user };
   }
 
-  async login(payload: JWTPayload | undefined) {
-    if (!payload) {
-      throw new UnauthorizedException();
+  async login(payload: JWTPayload) {
+    const { success, reason, username, acl } = payload;
+    if (!success) {
+      return { success, reason };
     }
 
     return {
-      accessToken: this.jwtService.sign(payload),
+      success,
+      data: { username, accessToken: this.jwtService.sign(payload), acl },
     };
   }
 }

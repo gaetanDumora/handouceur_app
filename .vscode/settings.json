@@ -4,5 +4,6 @@
         "handouceur",
         "healthcheck"
     ],
-    "tailwindCSS.emmetCompletions": true
+    "tailwindCSS.emmetCompletions": true,
+    "postman.telemetry.enabled": false
 }

@@ -1,14 +1,6 @@
-export const prismaClientErrorCodes = {
-  P2002: {
-    type: 'UNIQ_CONSTRAINT',
-    continue: true,
-    message: 'username already exists',
-  },
+export const UNIQ_CONSTRAINT = 'UNIQ_CONSTRAINT';
+export const INCORRECT_CREDENTIALS = 'INCORRECT_CREDENTIALS';
+export const PRISMA_ERRORS = {
+  P2002: UNIQ_CONSTRAINT,
 } as const;
-
-export type PrismaClientErrorCodes = keyof typeof prismaClientErrorCodes;
-export type PrismaClientErrors = {
-  type: string;
-  continue: boolean;
-  message: string;
-};
+export type PrismaCodeErrors = keyof typeof PRISMA_ERRORS;

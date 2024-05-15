@@ -86,13 +86,14 @@ export class UsersRepo implements OnModuleInit {
   }
 
   private async handleError<T>(
-    error: Error,
+    error: any,
     callback: (...args: unknown[]) => T,
     ...args: unknown[]
   ) {
     if (
       !(error instanceof PrismaClientInitializationError) &&
-      !(error instanceof PrismaClientUnknownRequestError)
+      !(error instanceof PrismaClientUnknownRequestError) &&
+      !(error?.code === 'P1000')
     ) {
       throw error;
     }

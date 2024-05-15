@@ -1,6 +1,6 @@
 import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { JWTPayload } from '../auth.interface';
 
@@ -14,16 +14,17 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     identifier: string,
     candidatePassword: string,
   ): Promise<JWTPayload> {
-    const user = await this.authService.validateUser(
+    const { user, success, reason } = await this.authService.validateUser(
       identifier,
       candidatePassword,
     );
-    if (!user?.userId) {
-      throw new UnauthorizedException();
+    if (!success || !user) {
+      return { success, reason };
     }
     // assign it to the Request object as req.user
     const [{ roles, permissions }] = user.userRolesPermissions;
     return {
+      success,
       sub: user.userId,
       username: user.username,
       acl: { role: roles.roleName, grant: permissions.permissionName },

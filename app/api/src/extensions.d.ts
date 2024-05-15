@@ -5,6 +5,6 @@ export {};
 
 declare module 'express' {
   export interface Request {
-    user?: JWTPayload;
+    user: JWTPayload;
   }
 }

@@ -16,6 +16,7 @@ async function bootstrap() {
   };
 
   const app = await NestFactory.create(AppModule, { httpsOptions });
+  app.setGlobalPrefix('api/v1');
 
   const config = app.get(ConfigService<EnvironmentVariables>);
   const port = config.get('PORT');

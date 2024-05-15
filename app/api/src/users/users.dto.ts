@@ -1,15 +1,20 @@
 import { Expose, Type } from 'class-transformer';
 import { UserPermissions, UserRoles } from './users.interface';
-import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsStrongPassword,
+  MinLength,
+} from 'class-validator';
 export class UserBaseDTO {
-  @Expose() @IsString() username: string;
+  @Expose() @IsString() @MinLength(5) username: string;
   @Expose() @IsEmail() emailAddress: string;
   @IsStrongPassword({
     minLength: 8,
     minLowercase: 1,
     minNumbers: 1,
     minUppercase: 1,
-    minSymbols: 0,
+    minSymbols: 1,
   })
   password: string;
 }
