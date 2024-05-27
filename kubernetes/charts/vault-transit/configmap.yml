@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-setup
+data:
+  setup.sh: |
+    #!/bin/sh
+    # Initialize Vault and unseal it
+    INIT_RESPONSE=$(vault operator init -format=yaml -key-shares=1 -key-threshold=1)
+
+    UNSEAL_KEY=$(echo "$INIT_RESPONSE" | grep -A 1 'unseal_keys_b64:' | tail -n 1 | awk '{print $2}')
+    ROOT_TOKEN=$(echo "$INIT_RESPONSE" | grep 'root_token:' | awk '{print $2}')
+
+    vault operator unseal "$UNSEAL_KEY"
+    vault login "$ROOT_TOKEN"
+
+    vault secrets enable transit
+    vault write -f transit/keys/unseal_key
+    vault audit enable file file_path=/vault/logs/audit.log
+
+    # Create an autounseal policy
+    vault policy write autounseal - <<EOF
+    path "transit/encrypt/autounseal" {
+      capabilities = [ "update" ]
+    }
+    path "transit/decrypt/autounseal" {
+      capabilities = [ "update" ]
+    }
+    EOF
+
+    # Generate token for other Vault instances to access the unseal key
+    vault write -f transit/keys/autounseal
+    TOKEN_RESPONSE=$(vault token create -orphan -policy="autounseal" -format=yaml)
+    AUTO_UNSEAL_TOKEN=$(echo "$TOKEN_RESPONSE" | grep 'client_token:' | awk '{print $2}')
+
+    JSON_FMT='{"root_token":"%s","unseal_key":"%s","unseal_token":"%s"}\n'
+    printf "$JSON_FMT" "$ROOT_TOKEN" "$UNSEAL_KEY" "$AUTO_UNSEAL_TOKEN"
+    #!/bin/sh

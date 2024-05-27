@@ -1,1 +1,1 @@
-subjectAltName=IP:0.0.0.0,IP:127.0.0.1,DNS:localhost,DNS:vault-transit,DNS:vault,DNS:vault-alpha,DNS:vault-bravo,DNS:reverseproxy
+subjectAltName=IP:0.0.0.0,IP:127.0.0.1,DNS:localhost,DNS:vault-transit,DNS:vault,DNS:vault-slave,DNS:vault-slave1,DNS:nginx,DNS:api,DNS:client

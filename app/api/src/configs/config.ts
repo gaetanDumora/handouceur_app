@@ -3,7 +3,7 @@ import { Config } from './config.interface';
 
 const config: Config = {
   nest: {
-    env: process.env.ENV!,
+    env: process.env.NODE_ENV,
     port: parseInt(process.env.PORT!, 10),
   },
   database: {

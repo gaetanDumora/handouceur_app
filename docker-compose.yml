@@ -1,27 +1,51 @@
 services:
-  reverseproxy:
+  api:
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./app/api
+          target: app
+        - action: rebuild
+          path: ./app/api/package.json
     build:
-      context: ./infra/nginx
-    restart: always
-    container_name: reverseproxy
+      context: .
+      dockerfile: dockerfiles/api.dockerfile
+      target: dev
+    container_name: api
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    env_file:
+      - ./app/api/.docker.env
+    volumes:
+      - ${PWD}/app/api:/app # mount the local folder to let watch know when a file has been modified
+      - /app/node_modules
+
+  nginx:
+    build:
+      context: .
+      dockerfile: dockerfiles/nginx.dockerfile
+    restart: unless-stopped
+    container_name: nginx
     ports:
       - "443:443"
     depends_on:
       - vault
-      - vault-alpha
-      - vault-bravo
+      - vault-slave
+      - vault-slave1
     volumes:
       - ${PWD}/infra/vault-cluster/certs/server-cert.pem:/etc/ssl/certs/server-cert.pem
       - ${PWD}/infra/vault-cluster/certs/server-key.pem:/etc/ssl/private/server-key.pem
 
   vault:
     build:
-      context: ./infra/vault-cluster/vault
-    restart: always
+      context: .
+      dockerfile: ./dockerfiles/vault.dockerfile
+      target: vault
+    restart: unless-stopped
     container_name: vault
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     ports:
       - "8200:8200"
     env_file:
@@ -35,13 +59,15 @@ services:
       retries: 3
     volumes:
       - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
-      - vault_raft:/vault/data
+      - /vault/data
 
-  vault-alpha:
+  vault-slave:
     build:
-      context: ./infra/vault-cluster/vault-alpha
-    restart: always
-    container_name: vault-alpha
+      context: .
+      dockerfile: ./dockerfiles/vault.dockerfile
+      target: slave1
+    restart: unless-stopped
+    container_name: vault-slave
     env_file:
       - ./infra/vault-cluster/.env
     cap_add:
@@ -53,13 +79,15 @@ services:
       retries: 3
     volumes:
       - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
-      - vault_alpha_raft:/vault/data
+      - /vault/data
 
-  vault-bravo:
+  vault-slave1:
     build:
-      context: ./infra/vault-cluster/vault-bravo
-    restart: always
-    container_name: vault-bravo
+      context: .
+      dockerfile: ./dockerfiles/vault.dockerfile
+      target: slave2
+    restart: unless-stopped
+    container_name: vault-slave1
     env_file:
       - ./infra/vault-cluster/.env
     cap_add:
@@ -71,13 +99,15 @@ services:
       retries: 3
     volumes:
       - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
-      - vault_bravo_raft:/vault/data
+      - /vault/data
 
   # vault transit autounseal token must be use by other vaults
   vault-transit:
     build:
-      context: ./infra/vault-cluster/vault-transit
-    restart: always
+      context: .
+      dockerfile: ./dockerfiles/vault.dockerfile
+      target: transit
+    restart: unless-stopped
     container_name: vault-transit
     env_file:
       - ./infra/vault-cluster/.env
@@ -85,11 +115,12 @@ services:
       - IPC_LOCK
     volumes:
       - ${PWD}/infra/vault-cluster/certs:/vault/certs:ro
-      - vault_transit_file:/vault/data
+      - /vault/data
 
   postgres:
     build:
-      context: ./infra/postgres
+      context: .
+      dockerfile: dockerfiles/postgres.dockerfile
     restart: on-failure
     container_name: postgres
     ports:
@@ -106,15 +137,9 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
-    restart: always
+    restart: unless-stopped
     container_name: pgadmin4
     ports:
       - 5555:80
     env_file:
       - ./infra/postgres/.env
-
-volumes:
-  vault_alpha_raft:
-  vault_bravo_raft:
-  vault_raft:
-  vault_transit_file:

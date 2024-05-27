@@ -6,7 +6,7 @@ export interface Config {
 
 export interface NestConfig {
   port: number | string;
-  env: string;
+  env?: string;
 }
 
 export interface DatabaseConfig {
@@ -25,7 +25,7 @@ export interface VaultConfig {
 }
 
 export interface EnvironmentVariables {
-  ENV: string;
+  NODE_ENV?: string;
   PORT: string;
   VAULT_URL: string;
   VAULT_CERTS_PATH: string;

@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+// Will use DATABASE_URL from .env when starting the app. It will be then overwritten by the vault agent
 const prisma = new PrismaClient();
 
-const main = async () => {
+const seed = async () => {
   return await Promise.all([
     prisma.roles.createMany({
       data: [
@@ -20,12 +21,12 @@ const main = async () => {
   ]);
 };
 
-main()
-  .then(async () => {
+(async function main() {
+  try {
+    await seed();
+  } catch (error) {
+    console.error(error);
+  } finally {
     await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+  }
+})();

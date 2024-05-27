@@ -14,6 +14,12 @@ const DEFAULT_PERMISSION_ID = { [USER_PERMISSIONS.RWD]: 1 };
 
 @Injectable()
 export class UsersRepo implements OnModuleInit {
+  private retry = 2;
+  private isPanic = (error: any) =>
+    (!(error instanceof PrismaClientInitializationError) &&
+      !(error instanceof PrismaClientUnknownRequestError) &&
+      !(error?.code === 'P1000')) ||
+    this.retry-- === 0;
   private readonly DEFAULT_JOIN = {
     include: {
       userRolesPermissions: {
@@ -90,11 +96,7 @@ export class UsersRepo implements OnModuleInit {
     callback: (...args: unknown[]) => T,
     ...args: unknown[]
   ) {
-    if (
-      !(error instanceof PrismaClientInitializationError) &&
-      !(error instanceof PrismaClientUnknownRequestError) &&
-      !(error?.code === 'P1000')
-    ) {
+    if (this.isPanic(error)) {
       throw error;
     }
     const newPrismaInstance = await this.prismaService.getPrismaInstance(true);

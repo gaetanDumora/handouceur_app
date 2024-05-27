@@ -39,7 +39,7 @@ vault audit enable file file_path=/vault/logs/audit.log
 printf "\n%s" \
         "[vault] write policies" \
         ""
-vault policy write nodejs-app /vault/policies/app-policy.hcl
+vault policy write nodejs-app /vault/policies/vault.policy.hcl
 sleep 2
 
 # Setup vault role in postgres

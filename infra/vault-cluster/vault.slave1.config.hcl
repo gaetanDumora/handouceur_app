@@ -12,7 +12,7 @@ listener "tcp" {
 # distributed storage in the cluster
 storage "raft" {
   path    = "/vault/data"
-  node_id = "vault-bravo"
+  node_id = "vault-slave1"
   retry_join {
     leader_api_addr         = "https://vault:8200"
     leader_client_cert_file = "/vault/certs/server-cert.pem"
@@ -20,13 +20,13 @@ storage "raft" {
     leader_ca_cert_file     = "/vault/certs/ca-cert.pem"
   }
   retry_join {
-    leader_api_addr         = "https://vault-alpha:8200"
+    leader_api_addr         = "https://vault-slave:8200"
     leader_client_cert_file = "/vault/certs/server-cert.pem"
     leader_client_key_file  = "/vault/certs/server-key.pem"
     leader_ca_cert_file     = "/vault/certs/ca-cert.pem"
   }
   retry_join {
-    leader_api_addr         = "https://vault-bravo:8200"
+    leader_api_addr         = "https://vault-slave1:8200"
     leader_client_cert_file = "/vault/certs/server-cert.pem"
     leader_client_key_file  = "/vault/certs/server-key.pem"
     leader_ca_cert_file     = "/vault/certs/ca-cert.pem"
@@ -50,6 +50,6 @@ seal "transit" {
 disable_mlock = true
 ui            = true // localhost:8200/ui/
 log_level     = "debug"
-api_addr      = "https://vault-bravo:8200"
+api_addr      = "https://vault-slave1:8200"
 
-cluster_addr = "https://vault-bravo:8201"
+cluster_addr = "https://vault-slave1:8201"

@@ -9,10 +9,11 @@ listener "tcp" {
   tls_disable        = false
 }
 
-# distributed storage
+# distributed storage in the cluster
 storage "raft" {
-  path    = "/vault/data"
-  node_id = "vault"
+  path            = "/vault/data"
+  node_id         = "vault-slave"
+  tls_skip_verify = false
   retry_join {
     leader_api_addr         = "https://vault:8200"
     leader_client_cert_file = "/vault/certs/server-cert.pem"
@@ -20,13 +21,13 @@ storage "raft" {
     leader_ca_cert_file     = "/vault/certs/ca-cert.pem"
   }
   retry_join {
-    leader_api_addr         = "https://vault-alpha:8200"
+    leader_api_addr         = "https://vault-slave:8200"
     leader_client_cert_file = "/vault/certs/server-cert.pem"
     leader_client_key_file  = "/vault/certs/server-key.pem"
     leader_ca_cert_file     = "/vault/certs/ca-cert.pem"
   }
   retry_join {
-    leader_api_addr         = "https://vault-bravo:8200"
+    leader_api_addr         = "https://vault-slave1:8200"
     leader_client_cert_file = "/vault/certs/server-cert.pem"
     leader_client_key_file  = "/vault/certs/server-key.pem"
     leader_ca_cert_file     = "/vault/certs/ca-cert.pem"
@@ -40,7 +41,7 @@ audit "file" {
 # manage auto unseal, backed by the follower
 seal "transit" {
   address         = "https://vault-transit:8200"
-  token           = "" // token from vault transit
+  token           = "" // should be the vault transit token
   disable_renewal = false
   key_name        = "autounseal"
   mount_path      = "transit/"
@@ -50,6 +51,6 @@ seal "transit" {
 disable_mlock = true
 ui            = true // localhost:8200/ui/
 log_level     = "debug"
-api_addr      = "https://vault:8200"
+api_addr      = "https://vault-slave:8200"
 
-cluster_addr = "https://vault:8201"
+cluster_addr = "https://vault-slave:8201"

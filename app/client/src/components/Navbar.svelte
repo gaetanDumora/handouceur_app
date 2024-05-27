@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { isDarkTheme } from '$lib/stores/theme';
 	import { user } from '$lib/stores/user';
+	export let toggleTheme = false;
 </script>
 
 <div class="navbar bg-primary no-animation">
@@ -69,7 +69,7 @@
 				>
 				<input
 					type="checkbox"
-					bind:checked={$isDarkTheme}
+					bind:checked={toggleTheme}
 					class="toggle toggle-sm theme-controller bg-accent"
 				/>
 				<svg

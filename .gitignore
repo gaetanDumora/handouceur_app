@@ -1,7 +1,7 @@
-secrets.txt
+secret*
 secrets/
 certs/
-.env
+*.env
 dist/
 node_modules
 file/
@@ -10,3 +10,4 @@ logs/
 data/
 .DS_Store
 clients_certs/
+environment.yml

@@ -41,7 +41,7 @@ export class VaultService {
       }
       return secret;
     } catch (error) {
-      if (error.response.statusCode === HttpStatus.FORBIDDEN) {
+      if (error?.response?.statusCode === HttpStatus.FORBIDDEN) {
         await this.login();
         return this.readSecret(path);
       } else {
