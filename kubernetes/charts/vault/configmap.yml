@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-setup
+data:
+  vault-tt.sh: |
+    #!/bin/sh
+    # Initialize Vault and unseal it
+    INIT_RESPONSE=$(vault operator init -format=yaml -key-shares=1 -key-threshold=1)
+
+    UNSEAL_KEY=$(echo "$INIT_RESPONSE" | grep -A 1 'unseal_keys_b64:' | tail -n 1 | awk '{print $2}')
+    ROOT_TOKEN=$(echo "$INIT_RESPONSE" | grep 'root_token:' | awk '{print $2}')
+
+    vault operator unseal "$UNSEAL_KEY"
+    vault login "$ROOT_TOKEN"
+
+    vault secrets enable transit
+    vault write -f transit/keys/unseal_key
+    vault audit enable file file_path=/vault/logs/audit.log
+
+    # Create an autounseal policy
+    vault policy write autounseal - <<EOF
+    path "transit/encrypt/autounseal" {
+      capabilities = [ "update" ]
+    }
+    path "transit/decrypt/autounseal" {
+      capabilities = [ "update" ]
+    }
+    EOF
+
+    # Generate token for other Vault instances to access the unseal key
+    vault write -f transit/keys/autounseal
+    TOKEN_RESPONSE=$(vault token create -orphan -policy="autounseal" -format=yaml)
+    AUTO_UNSEAL_TOKEN=$(echo "$TOKEN_RESPONSE" | grep 'client_token:' | awk '{print $2}')
+
+    JSON_FMT='{"root_token":"%s","unseal_key":"%s","unseal_token":"%s"}\n'
+    printf "$JSON_FMT" "$ROOT_TOKEN" "$UNSEAL_KEY" "$AUTO_UNSEAL_TOKEN"
+    #!/bin/sh
+
+  vault.sh: |
+    #!/bin/sh
+    # Initialize Vault
+    INIT_RESPONSE=$(vault operator init -format=yaml -recovery-shares 1 -recovery-threshold 1)
+    RECOVERY_KEY=$(echo "$INIT_RESPONSE" | grep -A 1 'recovery_keys_b64:' | tail -n 1 | awk '{print $2}')
+    ROOT_TOKEN=$(echo "$INIT_RESPONSE" | grep 'root_token:' | awk '{print $2}')
+
+    vault login "$ROOT_TOKEN"
+
+    vault secrets enable -path="kv-v2" kv-v2
+    vault secrets enable -path=database database
+
+    vault auth enable approle
+    vault audit enable file file_path=/vault/logs/audit.log
+
+    vault policy write nodejs-app - <<EOF
+    path "auth/approle/login" {
+      capabilities = ["update"]
+    }
+    path "kv-v2/data/*" {
+      capabilities = ["read", "create", "update"]
+    }
+    path "database/creds/ro" {
+      capabilities = ["update", "read"]
+    }
+    path "database/creds/rwd" {
+      capabilities = ["update", "read"]
+    }
+    EOF
+
+    vault write database/config/postgres \
+      plugin_name="postgresql-database-plugin" \
+      allowed_roles="*" \
+      connection_url="postgresql://{{username}}:{{password}}@postgres/handouceur?sslmode=require" \
+      username="vault" \
+      password="vault" \
+      password_authentication="scram-sha-256"
+
+    # Immediately rotate secret
+    vault write -force database/rotate-root/postgres
+
+    vault write database/roles/ro \
+      db_name="postgres" \
+      creation_statements="CREATE USER \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE NOREPLICATION VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
+      revocation_statements="REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\"; DROP OWNED BY \"{{name}}\"; DROP ROLE \"{{name}}\";" \
+      default_ttl=1h \
+      max_ttl=24h
+
+    vault write database/roles/rwd \
+      db_name="postgres" \
+      creation_statements="CREATE USER \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE NOREPLICATION VALID UNTIL '{{expiration}}'; \
+      GRANT INSERT, SELECT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\"; \
+      GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO \"{{name}}\";" \
+      revocation_statements="REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"{{name}}\"; DROP OWNED BY \"{{name}}\"; DROP ROLE \"{{name}}\";" \
+      default_ttl=1h \
+      max_ttl=24h
+
+    # Create role for my Node.js app
+    vault write auth/approle/role/nodejs-app \
+      token_policies="nodejs-app" \
+      token_ttl=1h \
+      token_max_ttl=24h
+
+    # Generate secrets for Node.js app (no ttl)
+    APP_ROLE_ID=$(vault read auth/approle/role/nodejs-app/role-id -format=yaml | grep 'role_id:' | awk '{print $2}')
+    APP_ROLE_SECRET=$(vault write -force auth/approle/role/nodejs-app/secret-id -format=yaml | grep 'secret_id:' | awk '{print $2}')
+
+    vault kv put -mount="kv-v2" "app" role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET
+
+    JSON_FMT='{"root_token":"%s","recovery_key":"%s","role_id":"%s","secret_id":"%s"}\n'
+    printf "$JSON_FMT" "$ROOT_TOKEN" "$RECOVERY_KEY" "$APP_ROLE_ID" "$APP_ROLE_SECRET"
+    #!/bin/sh

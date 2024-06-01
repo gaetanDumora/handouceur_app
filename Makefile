@@ -1,14 +1,24 @@
-VAULT_TRANSIT_DIR := kubernetes/charts/vault-transit
-JSON_TRANSIT_SECRET := ${VAULT_TRANSIT_DIR}/secret-transit.json
-UNSEAL_KEY := $(shell jq -r '.unseal_key' ${JSON_TRANSIT_SECRET} 2> /dev/null)
+NS ?= vault
+VAULT_DIR := kubernetes/charts/vault
+UNSEAL_KEY := $(shell jq -r '.unseal_key' ${VAULT_DIR}/secret-${NS}.json 2> /dev/null)
 
-.PHONY: deploy-vault-transit start-vault-transit
+.PHONY: init-ns deploy-vault-transit start-vault-transit
 
-deploy-vault-transit:
-	kubectl apply -f ${VAULT_TRANSIT_DIR}/configmap.yml
-	helm upgrade --install vault hashicorp/vault --values ${VAULT_TRANSIT_DIR}/values.yml
-start-vault-transit:
-	rm -f ${JSON_TRANSIT_SECRET}
-	kubectl exec vault-0 -- ./vault/scripts/setup.sh | grep -oE '{.*}' | sed 's/\x1b\[[0-9;]*m//g' > ${JSON_TRANSIT_SECRET}
-	kubectl exec vault-1 -ti -- vault operator unseal ${UNSEAL_KEY}
+init-ns:
+	kubectl create namespace vault
+	kubectl create namespace vault-tt
 
+deploy-vault:
+	kubectl apply -f ${VAULT_DIR}/configmap.yml --namespace ${NS}
+	helm upgrade --install ${NS} hashicorp/vault --values ${VAULT_DIR}/${NS}-values.yml --namespace ${NS}
+
+start-vault:
+	rm -f ${VAULT_DIR}/secret-${NS}.json
+	kubectl exec ${NS}-0 --namespace ${NS} -- ./vault/scripts/${NS}.sh | grep -oE '{.*}' | sed 's/\x1b\[[0-9;]*m//g' > ${VAULT_DIR}/secret-${NS}.json
+	kubectl exec ${NS}-1 --namespace ${NS} -ti -- vault operator unseal
+
+kill-vault:
+	helm uninstall ${NS} -n ${NS}
+	kubectl delete -n ${NS} configmap vault-setup
+	kubectl delete -n ${NS} persistentvolumeclaim data-${NS}-0
+	kubectl delete -n ${NS} persistentvolumeclaim data-${NS}-1

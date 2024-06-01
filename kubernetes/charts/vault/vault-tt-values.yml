@@ -10,8 +10,8 @@ server:
         name: vault-setup
         defaultMode: 0777
         items:
-          - key: setup.sh
-            path: setup.sh
+          - key: vault-tt.sh
+            path: vault-tt.sh
 
   readinessProbe:
     enabled: true
@@ -22,7 +22,7 @@ server:
     - -c
     - echo "START INIT SCRIPT"
     - -c
-    - /vault/scripts/setup.sh
+    - /vault/scripts/vault-tt.sh
 
   ha:
     replicas: 2
@@ -32,7 +32,7 @@ server:
       setNodeId: true
       config: |
         ui = true
-        cluster_name = "vault-integrated-storage"
+        cluster_name = "vault-tt-integrated-storage"
 
         listener "tcp" {
            address = "[::]:8200"
@@ -44,10 +44,10 @@ server:
           path    = "/vault/data/"
           tls_skip_verify = "true" 
           retry_join {
-              leader_api_addr = "http://vault-0.vault-internal:8200"
+              leader_api_addr = "http://vault-tt-0.vault-tt-internal:8200"
             }
           retry_join {
-              leader_api_addr = "http://vault-1.vault-internal:8200"
+              leader_api_addr = "http://vault-tt-1.vault-tt-internal:8200"
             }
         }
 

@@ -1,0 +1,72 @@
+server:
+  affinity: ""
+
+  volumeMounts:
+    - name: vault-setup
+      mountPath: /vault/scripts
+  volumes:
+    - name: vault-setup
+      configMap:
+        name: vault-setup
+        defaultMode: 0777
+        items:
+          - key: vault.sh
+            path: vault.sh
+
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+
+  postStart:
+    - /bin/sh
+    - -c
+    - echo "START INIT SCRIPT"
+    - -c
+    - /vault/scripts/vault.sh
+
+  ha:
+    replicas: 2
+    enabled: true
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+        cluster_name = "vault-integrated-storage"
+
+        listener "tcp" {
+           address = "[::]:8200"
+           cluster_address = "[::]:8201"
+           tls_disable = "true"
+        }
+
+        storage "raft" {
+          path    = "/vault/data/"
+          tls_skip_verify = "true" 
+          retry_join {
+              leader_api_addr = "http://vault-0.vault-internal:8200"
+            }
+          retry_join {
+              leader_api_addr = "http://vault-1.vault-internal:8200"
+            }
+        }
+
+        seal "transit" {
+          address = "http://vault-tt.vault-tt:8200"
+          token = ""
+          disable_renewal = false
+          key_name = "autounseal"
+          mount_path = "transit/"
+          tls_skip_verify = true
+        }
+
+        service_registration "kubernetes" {}
+
+ui:
+  enabled: true
+  publishNotReadyAddresses: true
+  activeVaultPodOnly: true
+  serviceType: "LoadBalancer"
+  serviceNodePort: null
+  externalPort: 8200
+  targetPort: 8200
