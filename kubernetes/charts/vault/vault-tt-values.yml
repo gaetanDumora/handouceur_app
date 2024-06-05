@@ -1,3 +1,10 @@
+global:
+  enabled: true
+  tlsDisable: true
+
+injector:
+  enabled: false
+
 server:
   affinity: ""
 

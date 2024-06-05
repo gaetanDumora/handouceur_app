@@ -7,24 +7,25 @@ injector:
 
 server:
   extraEnvironmentVars:
-    VAULT_CACERT: /vault/certs/vault.ca
-    VAULT_TLSCERT: /vault/certs/vault.crt
-    VAULT_TLSKEY: /vault/certs/vault.key
+    VAULT_CACERT: /vault/certs/ca.crt
+    VAULT_TLSCERT: /vault/certs/tls.crt
+    VAULT_TLSKEY: /vault/certs/tls.key
 
   affinity: ""
 
   volumeMounts:
-    - name: vault-ha-tls
+    - name: vault-certificate
       mountPath: /vault/certs
       readOnly: true
     - name: vault-setup
       mountPath: /vault/scripts
 
   volumes:
-    - name: vault-ha-tls
+    - name: vault-certificate
       secret:
-        defaultMode: 420
-        secretName: vault-ha-tls
+        secretName: vault-certificate
+        # defaultMode: 420
+        # secretName: vault-ha-tls
     - name: vault-setup
       configMap:
         name: vault-setup
@@ -61,24 +62,24 @@ server:
            tls_disable = 0
            address = "[::]:8200"
            cluster_address = "[::]:8201"
-           tls_cert_file = "/vault/certs/vault.crt"
-           tls_key_file  = "/vault/certs/vault.key"
-           tls_client_ca_file = "/vault/certs/vault.ca"
+           tls_cert_file = "/vault/certs/tls.crt"
+           tls_key_file  = "/vault/certs/tls.key"
+           tls_client_ca_file = "/vault/certs/ca.crt"
         }
 
         storage "raft" {
           path    = "/vault/data/"
           retry_join {
               leader_api_addr = "https://vault-0.vault-internal:8200"
-              leader_client_cert_file = "/vault/certs/vault.crt"
-              leader_client_key_file  = "/vault/certs/vault.key"
-              leader_ca_cert_file = "/vault/certs/vault.ca"            
+              leader_client_cert_file = "/vault/certs/tls.crt"
+              leader_client_key_file  = "/vault/certs/tls.key"
+              leader_ca_cert_file = "/vault/certs/ca.crt"            
             }
           retry_join {
               leader_api_addr = "https://vault-1.vault-internal:8200"
-              leader_client_cert_file = "/vault/certs/vault.crt"
-              leader_client_key_file  = "/vault/certs/vault.key"
-              leader_ca_cert_file = "/vault/certs/vault.ca" 
+              leader_client_cert_file = "/vault/certs/tls.crt"
+              leader_client_key_file  = "/vault/certs/tls.key"
+              leader_ca_cert_file = "/vault/certs/ca.crt" 
             }
         }
 

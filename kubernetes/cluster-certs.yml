@@ -1,0 +1,29 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-clusterissuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-certificate
+  namespace: vault
+spec:
+  secretName: vault-certificate
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  usages:
+    - server auth
+    - client auth
+  ipAddresses:
+    - 127.0.0.1
+  dnsNames:
+    - "*.vault-internal"
+    - "*.vault-internal.vault.svc.cluster.local"
+    - "*.vault"
+
+  issuerRef:
+    name: selfsigned-clusterissuer
+    kind: ClusterIssuer
