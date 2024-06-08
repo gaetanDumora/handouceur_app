@@ -31,19 +31,13 @@ server:
         name: vault-setup
         defaultMode: 0777
         items:
-          - key: vault.sh
-            path: vault.sh
-
-  readinessProbe:
-    enabled: true
-    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+          - key: init.sh
+            path: init.sh
 
   postStart:
     - /bin/sh
     - -c
-    - echo "START INIT SCRIPT"
-    - -c
-    - /vault/scripts/vault.sh
+    - /vault/scripts/init.sh
 
   standalone:
     enabled: false
@@ -56,7 +50,7 @@ server:
       setNodeId: true
       config: |
         ui = 1
-        cluster_name = "vault-integrated-storage"
+        cluster_name = "vault-raft"
 
         listener "tcp" {
            tls_disable = 0

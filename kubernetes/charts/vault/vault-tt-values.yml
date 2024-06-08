@@ -1,3 +1,4 @@
+namespace: vault-tt
 global:
   enabled: true
   tlsDisable: true
@@ -9,27 +10,21 @@ server:
   affinity: ""
 
   volumeMounts:
-    - name: vault-setup
+    - name: vault-tt-setup
       mountPath: /vault/scripts
   volumes:
-    - name: vault-setup
+    - name: vault-tt-setup
       configMap:
-        name: vault-setup
+        name: vault-tt-setup
         defaultMode: 0777
         items:
-          - key: vault-tt.sh
-            path: vault-tt.sh
-
-  readinessProbe:
-    enabled: true
-    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+          - key: init.sh
+            path: init.sh
 
   postStart:
     - /bin/sh
     - -c
-    - echo "START INIT SCRIPT"
-    - -c
-    - /vault/scripts/vault-tt.sh
+    - /vault/scripts/init.sh
 
   ha:
     replicas: 2
@@ -39,7 +34,7 @@ server:
       setNodeId: true
       config: |
         ui = true
-        cluster_name = "vault-tt-integrated-storage"
+        cluster_name = "vault-tt-raft"
 
         listener "tcp" {
            address = "[::]:8200"

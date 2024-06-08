@@ -11,11 +11,18 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: vault-setup
+  name: vault-tt-setup
+  namespace: vault-tt
 data:
-  vault-tt.sh: |
+  init.sh: |
     #!/bin/sh
     # Initialize Vault and unseal it
+    sleep 5
+
+    if [ "$HOSTNAME" != "vault-tt-0" ]; then
+    exit 0
+    fi
+
     INIT_RESPONSE=$(vault operator init -format=yaml -key-shares=1 -key-threshold=1)
 
     UNSEAL_KEY=$(echo "$INIT_RESPONSE" | grep -A 1 'unseal_keys_b64:' | tail -n 1 | awk '{print $2}')
@@ -44,12 +51,25 @@ data:
     AUTO_UNSEAL_TOKEN=$(echo "$TOKEN_RESPONSE" | grep 'client_token:' | awk '{print $2}')
 
     JSON_FMT='{"root_token":"%s","unseal_key":"%s","unseal_token":"%s"}\n'
-    printf "$JSON_FMT" "$ROOT_TOKEN" "$UNSEAL_KEY" "$AUTO_UNSEAL_TOKEN"
+    printf "$JSON_FMT" "$ROOT_TOKEN" "$UNSEAL_KEY" "$AUTO_UNSEAL_TOKEN" > /vault/vault-secrets.json
     #!/bin/sh
 
-  vault.sh: |
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-setup
+  namespace: vault
+data:
+  init.sh: |
     #!/bin/sh
     # Initialize Vault
+    sleep 5
+
+    if [ "$HOSTNAME" != "vault-0" ]; then
+    exit 0
+    fi
+
     INIT_RESPONSE=$(vault operator init -format=yaml -recovery-shares 1 -recovery-threshold 1)
     RECOVERY_KEY=$(echo "$INIT_RESPONSE" | grep -A 1 'recovery_keys_b64:' | tail -n 1 | awk '{print $2}')
     ROOT_TOKEN=$(echo "$INIT_RESPONSE" | grep 'root_token:' | awk '{print $2}')
@@ -117,5 +137,5 @@ data:
     vault kv put -mount="kv-v2" "app" role_id=$APP_ROLE_ID secret_id=$APP_ROLE_SECRET
 
     JSON_FMT='{"root_token":"%s","recovery_key":"%s","role_id":"%s","secret_id":"%s"}\n'
-    printf "$JSON_FMT" "$ROOT_TOKEN" "$RECOVERY_KEY" "$APP_ROLE_ID" "$APP_ROLE_SECRET"
+    printf "$JSON_FMT" "$ROOT_TOKEN" "$RECOVERY_KEY" "$APP_ROLE_ID" "$APP_ROLE_SECRET" > /vault/vault-secrets.json
     #!/bin/sh

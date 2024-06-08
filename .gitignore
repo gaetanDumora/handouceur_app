@@ -11,3 +11,4 @@ data/
 .DS_Store
 clients_certs/
 environment.yml
+*secrets.json
